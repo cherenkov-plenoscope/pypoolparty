@@ -20,7 +20,7 @@ def test_run_with_failing_job():
     qpath = pypoolparty.slurm.testing.dummy_paths()
 
     with tempfile.TemporaryDirectory(prefix="pypoolparty-slurm") as tmp_dir:
-        qsub_tmp_dir = os.path.join(tmp_dir, "qsub_tmp")
+        work_dir = os.path.join(tmp_dir, "work_dir")
 
         pypoolparty.testing.init_queue_state(
             path=qpath["queue_state"],
@@ -36,7 +36,7 @@ def test_run_with_failing_job():
 
         pool = pypoolparty.slurm.Pool(
             polling_interval=0.1,
-            work_dir=qsub_tmp_dir,
+            work_dir=work_dir,
             keep_work_dir=True,
             max_num_resubmissions=10,
             sbatch_path=qpath["sbatch"],
