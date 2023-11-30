@@ -26,17 +26,17 @@ def Pool(
         work_dir=work_dir,
         keep_work_dir=keep_work_dir,
         max_num_resubmissions=max_num_resubmissions,
-        job_submission_function=submit,
-        job_submission_function_kwargs={
+        submit_func=submit,
+        submit_func_kwargs={
             "sbatch_path": sbatch_path,
             "clusters": clusters,
         },
-        job_query_status_function=status,
-        job_query_status_function_kwargs={
+        status_func=status,
+        status_func_kwargs={
             "squeue_path": squeue_path,
         },
-        job_deletion_function=delete,
-        job_deletion_function_kwargs={"scancel_path": scancel_path},
+        delete_func=delete,
+        delete_func_kwargs={"scancel_path": scancel_path},
     )
 
 

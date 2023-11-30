@@ -30,19 +30,19 @@ def Pool(
         work_dir=work_dir,
         keep_work_dir=keep_work_dir,
         max_num_resubmissions=max_num_resubmissions,
-        job_submission_function=submit,
-        job_submission_function_kwargs={
+        submit_func=submit,
+        submit_func_kwargs={
             "qsub_path": qsub_path,
             "queue_name": queue_name,
             "script_exe_path": python_path,
         },
-        job_query_status_function=status,
-        job_query_status_function_kwargs={
+        status_func=status,
+        status_func_kwargs={
             "qstat_path": qstat_path,
             "error_state_indicator": error_state_indicator,
         },
-        job_deletion_function=delete,
-        job_deletion_function_kwargs={"qdel_path": qdel_path},
+        delete_func=delete,
+        delete_func_kwargs={"qdel_path": qdel_path},
     )
 
 

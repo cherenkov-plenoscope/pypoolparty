@@ -24,12 +24,12 @@ class Pool:
         work_dir=None,
         keep_work_dir=False,
         max_num_resubmissions=10,
-        job_submission_function=None,
-        job_submission_function_kwargs=None,
-        job_query_status_function=None,
-        job_query_status_function_kwargs=None,
-        job_deletion_function=None,
-        job_deletion_function_kwargs=None,
+        submit_func=None,
+        submit_func_kwargs=None,
+        status_func=None,
+        status_func_kwargs=None,
+        delete_func=None,
+        delete_func_kwargs=None,
     ):
         """
         Parameters
@@ -66,12 +66,12 @@ class Pool:
         self.max_num_resubmissions = max_num_resubmissions
         self.num_chunks = num_chunks
 
-        self.submit_jobs = job_submission_function
-        self.submit_jobs_kwargs = job_submission_function_kwargs
-        self.delete_jobs = job_deletion_function
-        self.delete_jobs_kwargs = job_deletion_function_kwargs
-        self.status_jobs = job_query_status_function
-        self.status_jobs_kwargs = job_query_status_function_kwargs
+        self.submit_func = submit_func
+        self.submit_func_kwargs = submit_func_kwargs
+        self.delete_func = delete_func
+        self.delete_func_kwargs = delete_func_kwargs
+        self.status_func = status_func
+        self.status_func_kwargs = status_func_kwargs
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
@@ -152,14 +152,14 @@ class Pool:
 
         for jobname in jobnames_in_session:
             ichunk = pooling.make_ichunk_from_jobname(jobname=jobname)
-            self.submit_jobs(
+            self.submit_func(
                 jobname=jobname,
                 script_path=script_path,
                 script_arguments=[pooling.chunk_path(swd, ichunk)],
                 stdout_path=pooling.chunk_path(swd, ichunk) + ".o",
                 stderr_path=pooling.chunk_path(swd, ichunk) + ".e",
                 logger=sl,
-                **self.submit_jobs_kwargs,
+                **self.submit_func_kwargs,
             )
 
         sl.debug("Waiting for jobs to finish")
@@ -169,10 +169,10 @@ class Pool:
         last_job_count = job_counter.init()
 
         while still_running:
-            job_stati = self.status_jobs(
+            job_stati = self.status_func(
                 jobnames=jobnames_in_session,
                 logger=sl,
-                **self.status_jobs_kwargs,
+                **self.status_func_kwargs,
             )
             job_count = job_counter.estimate(
                 num_jobs_running=len(job_stati["running"]),
@@ -199,7 +199,7 @@ class Pool:
                 sl.warning("Found error-state in: {:s}".format(job_id_str))
                 sl.warning("Deleting: {:s}".format(job_id_str))
 
-                self.delete_jobs(job=job, logger=sl, **self.delete_jobs_kwargs)
+                self.delete_func(job=job, logger=sl, **self.delete_func_kwargs)
 
                 if (
                     num_resubmissions_by_ichunk[ichunk]
@@ -212,14 +212,14 @@ class Pool:
                             job["name"],
                         )
                     )
-                    self.submit_jobs(
+                    self.submit_func(
                         jobname=job["name"],
                         script_path=script_path,
                         script_arguments=[pooling.chunk_path(swd, ichunk)],
                         stdout_path=pooling.chunk_path(swd, ichunk) + ".o",
                         stderr_path=pooling.chunk_path(swd, ichunk) + ".e",
                         logger=sl,
-                        **self.submit_jobs_kwargs,
+                        **self.submit_func_kwargs,
                     )
 
             if job_stati["error"]:
