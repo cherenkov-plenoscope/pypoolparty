@@ -24,7 +24,11 @@ setuptools.setup(
         "pypoolparty",
     ],
     package_data={"pypoolparty": []},
-    install_requires=[],
+    install_requires=[
+        "qstat>=0.0.5",
+        "json_line_logger",
+        "rename_after_writing",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
