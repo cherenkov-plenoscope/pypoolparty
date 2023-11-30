@@ -16,7 +16,7 @@ from .. import utils
         qdel_path : str
             Path to the 'qdel' executable used to delete/remove jobs.
     """
-    + proto_pool.__doc__retrun_statement()
+    + proto_pool._doc_retrun_statement()
 )
 def Pool(
     num_chunks=None,

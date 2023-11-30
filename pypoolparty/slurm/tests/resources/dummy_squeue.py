@@ -57,7 +57,7 @@ for evil in state["evil_jobs"]:
 
 if len(state["running"]) >= MAX_NUM_RUNNING:
     run_job = state["running"].pop(0)
-    pypoolparty.testing.actually_run_the_job(run_job)
+    pypoolparty.testing.dummy_run_job(run_job)
 elif len(state["pending"]) > 0:
     job = state["pending"].pop(0)
     ichunk = pypoolparty.pooling.make_ichunk_from_jobname(jobname=job["NAME"])
@@ -74,7 +74,7 @@ elif len(state["pending"]) > 0:
         state["running"].append(job)
 elif len(state["running"]) > 0:
     run_job = state["running"].pop(0)
-    pypoolparty.testing.actually_run_the_job(run_job)
+    pypoolparty.testing.dummy_run_job(run_job)
 
 
 evil_jobs = []

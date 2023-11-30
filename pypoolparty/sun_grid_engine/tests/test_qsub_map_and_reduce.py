@@ -20,7 +20,7 @@ def test_full_chain():
     tasks = GOOD_TASKS
 
     with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=os.path.join(tmp, "my_work_dir"),
             polling_interval=1e-3,
@@ -38,7 +38,7 @@ def test_full_chain():
 def test_force_dump_tmp_dir():
     qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
     with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=os.path.join(tmp, "my_work_dir"),
             keep_work_dir=True,
@@ -57,7 +57,7 @@ def test_force_dump_tmp_dir():
 def test_BAD_FUNC_creating_stderr():
     qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
     with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=os.path.join(tmp, "my_work_dir"),
             polling_interval=1e-3,
@@ -78,7 +78,7 @@ def test_one_bad_task_creating_stderr():
         bad_tasks = GOOD_TASKS.copy()
         bad_tasks.append("np.sum will not work for me.")
 
-        pypoolparty.testing.init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=os.path.join(tmp, "my_work_dir"),
             polling_interval=1e-3,
@@ -98,7 +98,7 @@ def test_one_bad_task_creating_stderr():
 def test_bundling_many_tasks():
     qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
     with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
 
         num_many_tasks = 120
 

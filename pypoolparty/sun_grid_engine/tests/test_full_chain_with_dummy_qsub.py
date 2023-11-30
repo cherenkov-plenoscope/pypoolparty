@@ -22,7 +22,7 @@ def test_run_with_failing_job():
     with tempfile.TemporaryDirectory(prefix="sge") as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
 
-        pypoolparty.testing.init_queue_state(
+        pypoolparty.testing.dummy_init_queue_state(
             path=qpath["queue_state"],
             evil_jobs=[{"ichunk": 13, "num_fails": 0, "max_num_fails": 5}],
         )

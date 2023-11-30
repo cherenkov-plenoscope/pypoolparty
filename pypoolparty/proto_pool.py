@@ -267,7 +267,7 @@ class Pool:
         return task_results
 
 
-def __doc__retrun_statement():
+def _doc_retrun_statement():
     return """
         Returns
         -------

@@ -1,6 +1,6 @@
+from . import testing
 from . import call
 from . import organizing_jobs
-from . import testing
 from .. import proto_pool
 from .. import utils
 
@@ -16,7 +16,7 @@ from .. import utils
         scancel_path : str
             Path to the 'scancel' executable used to delete/remove jobs.
     """
-    + proto_pool.__doc__retrun_statement()
+    + proto_pool._doc_retrun_statement()
 )
 def Pool(
     num_chunks=None,
