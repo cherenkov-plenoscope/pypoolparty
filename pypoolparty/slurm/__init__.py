@@ -1,6 +1,6 @@
 from . import call
 from . import organizing_jobs
-from .. import pool
+from .. import proto_pool
 from .. import utils
 
 
@@ -18,7 +18,7 @@ def Pool(
     squeue_path="squeue",
     scancel_path="scancel",
 ):
-    return pool.Pool(
+    return proto_pool.Pool(
         num_chunks=num_chunks,
         python_path=python_path,
         polling_interval=polling_interval,

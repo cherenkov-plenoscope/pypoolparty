@@ -1,7 +1,7 @@
 from . import testing
 from . import call
 from . import organizing_jobs
-from .. import pool
+from .. import proto_pool
 from .. import utils
 
 
@@ -23,7 +23,7 @@ def Pool(
     if python_path is None:
         python_path = utils.default_python_path()
 
-    return pool.Pool(
+    return proto_pool.Pool(
         num_chunks=num_chunks,
         python_path=python_path,
         polling_interval=polling_interval,

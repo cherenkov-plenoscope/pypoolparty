@@ -22,6 +22,8 @@ setuptools.setup(
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
     packages=[
         "pypoolparty",
+        "pypoolparty.sun_grid_engine",
+        "pypoolparty.slurm",
     ],
     package_data={"pypoolparty": []},
     install_requires=[
