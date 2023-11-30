@@ -10,10 +10,17 @@ The ``pypoolparty`` provides a ``Pool()`` with a ``map()`` function which aims
 to be a drop-in-replacement for ``builtins``' ``map()``, and ``multiprocessing.Pool()``'s ``map()``. The idea is to allow the user to always fall back to these builtin pools and map-functions in case a distributed compute cluster is not available.
 
 This package respects the concept of 'fair share' what is commonly found
-in scientific environments, but not common in commercial environments.
+in scientific environments, but is not common in commercial environments.
 Here, fair share means that compute resources are only requested when they
 are needed. Compute resources are not requested to just idle and wait for
 the user to submit jobs.
+
+A consequence of this fair sharing is, that this package expects your jobs
+to randomly die in conflicts for resources with jobs submitted by other users,
+such as conflicts for limited disk space on temporary drives. If your jobs run
+into error states, they will be resubmitted until a predefined limit is
+reached.
+
 
 Installing
 ==========
@@ -36,9 +43,10 @@ Basic Usage
 
 Currently, there is ``ppp.slurm.Pool()`` and ``ppp.sun_grid_engine.Pool()``.
 
+
 Alternatives
 ============
-When you do not share resources with other users, and when you have some administrative power you might want to use one of these:
+When you do not share resources with other users, when you do not need to respect fair share, and when you have some administrative power you might want to use one of these:
 
 - Dask_ has a ``job_queue`` which also supports other flavors such as PBS, SLURM.
 
@@ -82,6 +90,7 @@ The worker-node script explicitly sets the environment variables.
 This package does not rely on the batch system's ability (``slurm``/``sge``)
 to do so.
 
+
 Wording
 =======
 
@@ -106,6 +115,7 @@ Testing
 .. code:: bash
 
     pytest -s .
+
 
 dummy queue
 -----------
