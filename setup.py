@@ -14,7 +14,10 @@ with open(os.path.join("pypoolparty", "version.py")) as f:
 setuptools.setup(
     name="pypoolparty",
     version=version,
-    description=("This is pypoolparty."),
+    description=(
+        "A job pool for distributed compute clusters inspired by "
+        "python's multoprocessing.Pool."
+    ),
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="https://github.com/cherenkov-plenoscope/pypoolparty",
