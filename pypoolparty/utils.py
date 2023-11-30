@@ -73,3 +73,15 @@ def shutdown_logger(logger):
         fh.flush()
         fh.close()
         logger.removeHandler(fh)
+
+
+def add_doc(value):
+    """
+    A decorater to add __doc__ to a function.
+    """
+
+    def _doc(func):
+        func.__doc__ = value
+        return func
+
+    return _doc

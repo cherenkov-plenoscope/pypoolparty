@@ -5,6 +5,19 @@ from .. import proto_pool
 from .. import utils
 
 
+@utils.add_doc(
+    proto_pool.Pool.__init__.__doc__
+    + """sbatch_path : str
+            Path to the 'sbatch' executable used to submit jobs.
+        clusters : (list of str) or None
+            List of the clusters to submit to. See '--clusters' in 'sbatch'.
+        squeue_path : str
+            Path to the 'squeue' executable used to query the state of jobs.
+        scancel_path : str
+            Path to the 'scancel' executable used to delete/remove jobs.
+    """
+    + proto_pool.__doc__retrun_statement()
+)
 def Pool(
     num_chunks=None,
     python_path=None,

@@ -5,6 +5,19 @@ from .. import proto_pool
 from .. import utils
 
 
+@utils.add_doc(
+    proto_pool.Pool.__init__.__doc__
+    + """qsub_path : str
+            Path to the 'qsub' executable used to submit jobs.
+        queue_name : str or None
+            Name of the queue to submit to. See '-q' in 'qsub'.
+        qstat_path : str
+            Path to the 'qstat' executable used to query the state of jobs.
+        qdel_path : str
+            Path to the 'qdel' executable used to delete/remove jobs.
+    """
+    + proto_pool.__doc__retrun_statement()
+)
 def Pool(
     num_chunks=None,
     python_path=None,

@@ -265,3 +265,12 @@ class Pool:
             shutil.rmtree(swd)
 
         return task_results
+
+
+def __doc__retrun_statement():
+    return """
+        Returns
+        -------
+        pool : pypoolparty.proto_pool.Pool
+            A pool instance with a map() function.
+    """
