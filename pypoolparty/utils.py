@@ -44,4 +44,4 @@ def read_pickle(path):
 
 
 def write_pickle(path, content):
-    write(path=path, content=pickle.dumps(content), mode="t")
+    write(path=path, content=pickle.dumps(content), mode="b")
