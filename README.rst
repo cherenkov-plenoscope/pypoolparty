@@ -3,13 +3,28 @@ Python Pool Party
 #################
 |TestStatus| |PyPiStatus| |BlackStyle| |BlackPackStyle| |MITLicenseBadge|
 
-A python package for job pools (as in ``multiprocessing.Pool()``) which acts
-on distributed compute clusters.
+A python package for job pools (as in ``multiprocessing.Pool()``) which makes
+use of distributed compute clusters.
+
+The ``pypoolparty`` provides a ``Pool()`` with a ``map()`` function which aims
+to be a drop-in-replacement for ``builtins``' ``map()``, and ``multiprocessing.Pool()``'s ``map()``. The idea is to allow the user to always fall back to these builtin pools and map-functions in case a distributed compute cluster is not available.
+
+This package respects the concept of 'fair share' what is commonly found
+in scientific environments, but not common in commercial environments.
+Here, fair share means that compute resources are only requested when they
+are needed. Compute resources are not requested to just idle and wait for
+the user to submit jobs.
+
+Installing
+==========
+
+.. code:: bash
+
+    pip install pypoolparty
 
 
 Basic Usage
 ===========
-A drop-in-replacement for builtins' ``map()``, and ``multiprocessing.Pool()``'s ``map()``.
 
 .. code:: python
 
@@ -53,7 +68,7 @@ Inner Workings
 
 - When all queue jobs are submitted, ``map()`` monitors their progress. In case a queue-job runs into an error-state, the job will be deleted and resubmitted until a maximum number of resubmissions is reached.
 
-- When no more queue jobs are running or pending, ``map()`` will reduce theresults from ``work_dir/{ichunk:09d}.pkl.out``.
+- When no more queue jobs are running or pending, ``map()`` will reduce the results from ``work_dir/{ichunk:09d}.pkl.out``.
 
 - In case of non-zero ``stderr`` in any task, a missing result, or on the user's request, the ``work_dir`` will be kept for inspection. Otherwise its removed.
 
@@ -80,7 +95,7 @@ Wording
 
 - ``ichunk`` is the index of a chunk. It is used to create the chunks's filenames such as ``work_dir/{ichunk:09d}.pkl``.
 
-- `queue-job` is what we submitt into the queue. Each queue-job processes the tasks in a single chunk in series.
+- `queue-job` is what we submit into the queue. Each queue-job processes the tasks in a single chunk in series.
 
 - ``jobname`` or ``job["name"]`` is assigned to a queue job by our ``map()``. It is composed of our ``map()``'s session-id, and ``ichunk``. E.g. ``"q"%Y-%m-%dT%H:%M:%S"#{ichunk:09d}"``
 
