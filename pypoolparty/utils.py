@@ -45,3 +45,31 @@ def read_pickle(path):
 
 def write_pickle(path, content):
     write(path=path, content=pickle.dumps(content), mode="b")
+
+
+def resources_path(package_name="pypoolparty"):
+    try:
+        # python version after 3.7
+        import importlib
+        from importlib import resources
+
+        return str(importlib.resources.files(package_name))
+    except Exception as err:
+        pass
+
+    # python version up to 3.7
+    import pkg_resources
+
+    return str(
+        pkg_resources.resource_filename(
+            package_or_requirement=package_name,
+            resource_name="",
+        )
+    )
+
+
+def shutdown_logger(logger):
+    for fh in logger.handlers:
+        fh.flush()
+        fh.close()
+        logger.removeHandler(fh)
