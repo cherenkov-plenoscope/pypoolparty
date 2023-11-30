@@ -13,7 +13,7 @@ import json
 
 class Pool:
     """
-    Multiprocessing on a compute-cluster using queues.
+    A pool of compute resources on a distributed compute cluster.
     """
 
     def __init__(
@@ -34,8 +34,13 @@ class Pool:
         """
         Parameters
         ----------
-        clusters : (list of str) or None
-            Name of the clusters to submit to.
+        num_chunks : int or None
+            If provided, the tasks are grouped in this many chunks.
+            The tasks in a chunk are computed in serial on the worker-node.
+            It is useful to chunk tasks when the number of tasks is much larger
+            than the number of available slots for parallel computing and the
+            start-up-time for a slot is not much smaller than the compute-time
+            for a single task.
         python_path : str or None
             The python path to be used on the computing-cluster's worker-nodes
             to execute the worker-node's python-script.
@@ -50,13 +55,6 @@ class Pool:
         max_num_resubmissions: int
             In case of error-state in queue-job, the job will be tried this
             often to be resubmitted befor giving up on it.
-        num_chunks : int or None
-            If provided, the tasks are grouped in this many chunks.
-            The tasks in a chunk are computed in serial on the worker-node.
-            It is useful to chunk tasks when the number of tasks is much larger
-            than the number of available slots for parallel computing and the
-            start-up-time for a slot is not much smaller than the compute-time
-            for a single task.
         """
         if python_path is None:
             self.python_path = utils.default_python_path()
