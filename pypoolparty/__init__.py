@@ -3,3 +3,4 @@ from . import slurm
 from . import sun_grid_engine
 from . import chunking
 from . import utils
+from . import making_script
