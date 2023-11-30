@@ -53,15 +53,6 @@ def indent_text(text, indent=4):
     return "".join(out)
 
 
-def actually_run_the_job(job):
-    with open(job["_opath"], "wt") as o, open(job["_epath"], "wt") as e:
-        subprocess.call(
-            [job["_python_path"], job["_script_arg_0"], job["_script_arg_1"]],
-            stdout=o,
-            stderr=e,
-        )
-
-
 # dummy qstat
 # ===========
 # Every time this is called, it runs one job.
@@ -82,7 +73,7 @@ for evil in state["evil_jobs"]:
 
 if len(state["running"]) >= MAX_NUM_RUNNING:
     run_job = state["running"].pop(0)
-    actually_run_the_job(run_job)
+    pypoolparty.testing.actually_run_the_job(run_job)
 elif len(state["pending"]) > 0:
     job = state["pending"].pop(0)
     ichunk = pypoolparty.pooling.make_ichunk_from_jobname(
@@ -104,7 +95,7 @@ elif len(state["pending"]) > 0:
         state["running"].append(job)
 elif len(state["running"]) > 0:
     run_job = state["running"].pop(0)
-    actually_run_the_job(run_job)
+    pypoolparty.testing.actually_run_the_job(run_job)
 
 
 evil_jobs = []

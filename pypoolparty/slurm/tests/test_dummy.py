@@ -5,21 +5,21 @@ import os
 
 
 def test_dummys_exist():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
-    assert os.path.exists(qpath["qsub"])
-    assert os.path.exists(qpath["qstat"])
-    assert os.path.exists(qpath["qdel"])
+    qpath = pypoolparty.slurm.testing.dummy_paths()
+    assert os.path.exists(qpath["sbatch"])
+    assert os.path.exists(qpath["squeue"])
+    assert os.path.exists(qpath["scancel"])
 
 
 def test_run_with_failing_job():
     """
-    The dummy_qsub will run the jobs.
+    The dummy will run the jobs.
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
     This tests if qmr.map can recover this error using 10 trials.
     """
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
+    qpath = pypoolparty.slurm.testing.dummy_paths()
 
-    with tempfile.TemporaryDirectory(prefix="sge") as tmp_dir:
+    with tempfile.TemporaryDirectory(prefix="pypoolparty-slurm") as tmp_dir:
         qsub_tmp_dir = os.path.join(tmp_dir, "qsub_tmp")
 
         pypoolparty.testing.init_queue_state(
@@ -34,15 +34,14 @@ def test_run_with_failing_job():
             task = np.arange(0, 100)
             tasks.append(task)
 
-        pool = pypoolparty.sun_grid_engine.Pool(
+        pool = pypoolparty.slurm.Pool(
             polling_interval=0.1,
             work_dir=qsub_tmp_dir,
             keep_work_dir=True,
             max_num_resubmissions=10,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
-            error_state_indicator="E",
+            sbatch_path=qpath["sbatch"],
+            squeue_path=qpath["squeue"],
+            scancel_path=qpath["scancel"],
         )
 
         results = pool.map(func=np.sum, iterable=tasks)

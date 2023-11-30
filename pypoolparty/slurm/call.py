@@ -2,6 +2,7 @@ import json_line_logger
 import subprocess
 import tempfile
 import os
+import time
 from .. import utils
 
 
@@ -47,6 +48,7 @@ def scancel(
     if logger is None:
         logger = json_line_logger.LoggerStdout()
 
+    t = 0
     while True:
         try:
             _scancel(
@@ -155,8 +157,10 @@ def _parse_stdout_format_all(stdout, delimiter="|", logger=None):
     logger.debug("header line has {:d} keys".format(len(keys)))
 
     out = []
+    # print("---lines---")
     for i in range(1, len(lines)):
         line = lines[i]
+        # print("line: '{:s}'.".format(line))
         values = str.split(line, delimiter)
         if len(values) != len(keys):
             logger.debug("line {:d} has not expected num. of tokens".format(i))

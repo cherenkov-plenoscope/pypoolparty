@@ -6,3 +6,5 @@ from . import utils
 from . import making_script
 from . import pooling
 from . import job_counter
+from . import debugging
+from . import testing

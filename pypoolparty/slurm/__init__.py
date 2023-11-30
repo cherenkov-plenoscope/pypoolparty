@@ -1,5 +1,6 @@
 from . import call
 from . import organizing_jobs
+from . import testing
 from .. import proto_pool
 from .. import utils
 

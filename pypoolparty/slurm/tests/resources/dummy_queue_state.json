@@ -1,0 +1,11 @@
+{
+    "pending": [],
+    "running": [],
+    "evil_jobs": [
+        {
+            "ichunk": 13,
+            "num_fails": 5,
+            "max_num_fails": 5
+        }
+    ]
+}

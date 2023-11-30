@@ -2,7 +2,6 @@
 A dummy queue for testing qsub, qstat, and qdel.
 """
 import os
-import json
 from .. import utils
 
 
@@ -16,10 +15,3 @@ def dummy_paths():
     out["qstat"] = join(ddir, "dummy_qstat.py")
     out["qdel"] = join(ddir, "dummy_qdel.py")
     return out
-
-
-def init_queue_state(path, evil_jobs=[]):
-    with open(path, "wt") as f:
-        f.write(
-            json.dumps({"running": [], "pending": [], "evil_jobs": evil_jobs})
-        )
