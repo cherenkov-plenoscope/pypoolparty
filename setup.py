@@ -28,7 +28,12 @@ setuptools.setup(
         "pypoolparty.sun_grid_engine",
         "pypoolparty.slurm",
     ],
-    package_data={"pypoolparty": []},
+    package_data={
+        "pypoolparty": [
+            os.path.join("slurm", "tests", "resources", "*"),
+            os.path.join("sun_grid_engine", "tests", "resources", "*"),
+        ]
+    },
     install_requires=[
         "qstat>=0.0.5",
         "json_line_logger",
