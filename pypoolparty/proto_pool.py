@@ -30,6 +30,7 @@ class Pool:
         status_func_kwargs=None,
         delete_func=None,
         delete_func_kwargs=None,
+        verbose=False,
     ):
         """
         Parameters
@@ -55,6 +56,8 @@ class Pool:
         max_num_resubmissions: int
             In case of error-state in queue-job, the job will be tried this
             often to be resubmitted befor giving up on it.
+        verbose : bool
+            If true, the pool will print the state of its jobs to stdout.
         """
         if python_path is None:
             self.python_path = utils.default_python_path()
@@ -72,6 +75,7 @@ class Pool:
         self.delete_func_kwargs = delete_func_kwargs
         self.status_func = status_func
         self.status_func_kwargs = status_func_kwargs
+        self.verbose = verbose
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
@@ -183,7 +187,11 @@ class Pool:
             )
 
             if not job_counter.is_equal(job_count, last_job_count):
-                sl.info(job_counter.to_str(job_count))
+                msg = job_counter.to_str(job_count)
+                sl.info(msg)
+                if self.verbose:
+                    print("[pool-jobs]", msg)
+
             last_job_count = job_count
 
             for job in job_stati["error"]:

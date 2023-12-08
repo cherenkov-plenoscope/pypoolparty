@@ -26,7 +26,7 @@ def split_jobs_in_running_pending_error(jobs, logger=None):
         elif "err" in str.lower(job["state"]):
             error.append(job)
         else:
-            logger.degug(
+            logger.debug(
                 "job {:s} is in state {:s}.".format(job["name"], job["state"])
             )
 
