@@ -24,13 +24,13 @@ class Pool:
         work_dir=None,
         keep_work_dir=False,
         max_num_resubmissions=10,
+        verbose=False,
         submit_func=None,
         submit_func_kwargs=None,
         status_func=None,
         status_func_kwargs=None,
         delete_func=None,
         delete_func_kwargs=None,
-        verbose=False,
     ):
         """
         Parameters

@@ -25,6 +25,7 @@ def Pool(
     work_dir=None,
     keep_work_dir=False,
     max_num_resubmissions=0,
+    verbose=False,
     # sge specific
     # ------------
     qsub_path="qsub",
@@ -43,6 +44,7 @@ def Pool(
         work_dir=work_dir,
         keep_work_dir=keep_work_dir,
         max_num_resubmissions=max_num_resubmissions,
+        verbose=verbose,
         submit_func=submit,
         submit_func_kwargs={
             "qsub_path": qsub_path,
