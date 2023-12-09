@@ -31,6 +31,7 @@ class Pool:
         status_func_kwargs=None,
         delete_func=None,
         delete_func_kwargs=None,
+        filter_stderr_func=None,
     ):
         """
         Parameters
@@ -75,10 +76,14 @@ class Pool:
         self.delete_func_kwargs = delete_func_kwargs
         self.status_func = status_func
         self.status_func_kwargs = status_func_kwargs
+        self.filter_stderr_func = filter_stderr_func
         self.verbose = verbose
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
+
+    def print(self, msg):
+        print("[pypoolparty]", utils.time_now_iso8601(), msg)
 
     def map(self, func, iterable):
         """
@@ -115,6 +120,9 @@ class Pool:
             swd = os.path.abspath(self.work_dir)
 
         os.makedirs(swd)
+        if self.verbose:
+            self.print("start: {:s}".format(swd))
+
         sl = json_line_logger.LoggerFile(path=os.path.join(swd, "log.jsonl"))
 
         sl.debug("Starting map()")
@@ -190,7 +198,7 @@ class Pool:
                 msg = job_counter.to_str(job_count)
                 sl.info(msg)
                 if self.verbose:
-                    print("[pool-jobs]", msg)
+                    self.print(msg)
 
             last_job_count = job_count
 
@@ -252,7 +260,9 @@ class Pool:
         )
 
         has_stderr = pooling.has_invalid_or_non_empty_stderr(
-            work_dir=swd, num_chunks=len(chunks)
+            work_dir=swd,
+            num_chunks=len(chunks),
+            filter_stderr_func=self.filter_stderr_func,
         )
         if has_stderr:
             sl.warning(

@@ -60,12 +60,18 @@ def reduce_task_results_from_work_dir(work_dir, chunks, logger):
     return task_results_are_incomplete, task_results
 
 
-def has_invalid_or_non_empty_stderr(work_dir, num_chunks):
+def has_invalid_or_non_empty_stderr(
+    work_dir, num_chunks, filter_stderr_func=None
+):
     has_errors = False
     for ichunk in range(num_chunks):
         e_path = chunk_path(work_dir, ichunk) + ".e"
         try:
-            if os.stat(e_path).st_size != 0:
+            with open(e_path, "rt") as f:
+                stderr = f.read()
+            if filter_stderr_func:
+                stderr = filter_stderr_func(stderr)
+            if len(stderr) > 0:
                 has_errors = True
         except FileNotFoundError:
             has_errors = True

@@ -35,6 +35,7 @@ job = {
     "STATE": "PENDING",
     "JOBID": jobid,
     "NAME": args.job_name,
+    "REASON": "foobar",
     "_opath": args.output,
     "_epath": args.error,
     "_python_path": _python_path,

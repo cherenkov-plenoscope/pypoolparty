@@ -19,12 +19,17 @@ def split_jobs_in_running_pending_error(jobs, logger=None):
     error = []
 
     for job in jobs:
-        if job["state"] == "RUNNING":
+        if any([e in job["reason"] for e in ["err", "bad", "fail", "halt"]]):
+            error.append(job)
+            logger.debug(
+                "job {:s} has reason: {:s}.".format(job["name"], job["reason"])
+            )
+        elif "err" in str.lower(job["state"]):
+            error.append(job)
+        elif job["state"] == "RUNNING":
             running.append(job)
         elif job["state"] == "PENDING":
             pending.append(job)
-        elif "err" in str.lower(job["state"]):
-            error.append(job)
         else:
             logger.debug(
                 "job {:s} is in state {:s}.".format(job["name"], job["state"])

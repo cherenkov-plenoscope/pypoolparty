@@ -52,6 +52,7 @@ def Pool(
         },
         delete_func=delete,
         delete_func_kwargs={"scancel_path": scancel_path},
+        filter_stderr_func=filter_stderr,
     )
 
 
@@ -134,3 +135,34 @@ def _make_job(slurm_job):
     return {
         "name": slurm_job["name"],
     }
+
+
+def filter_stderr(stderr):
+    """
+    Remove slurm-foo from job's stderr which can apparently be ignored.
+
+    example
+    -------
+        '''
+        slurmstepd: error: *** JOB 123456 STEPD TERMINATED ON node12 AT
+        1846-03-28T02:04:23 DUE TO JOB NOT ENDING WITH SIGNALS ***
+        '''
+    """
+    ends_with_newline = False
+    if len(stderr) > 0:
+        ends_with_newline = stderr[-1] == "\n"
+
+    lines = str.splitlines(stderr)
+    out = []
+    for line in lines:
+        if (
+            "slurmstepd: error:" in line
+            and "DUE TO JOB NOT ENDING WITH SIGNALS" in line
+        ):
+            continue
+        out.append(line)
+
+    out = str.join("\n", out)
+    if ends_with_newline:
+        out += "\n"
+    return out

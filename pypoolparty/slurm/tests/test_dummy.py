@@ -42,6 +42,7 @@ def test_run_with_failing_job():
             sbatch_path=qpath["sbatch"],
             squeue_path=qpath["squeue"],
             scancel_path=qpath["scancel"],
+            verbose=True,
         )
 
         results = pool.map(func=np.sum, iterable=tasks)

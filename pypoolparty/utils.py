@@ -20,6 +20,10 @@ def session_id_from_time_now():
     return time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
 
 
+def time_now_iso8601():
+    return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
+
+
 def read(path, mode="t"):
     with open(path, mode + "r") as f:
         content = f.read()
