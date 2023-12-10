@@ -24,7 +24,7 @@ def Pool(
     polling_interval=5.0,
     work_dir=None,
     keep_work_dir=False,
-    max_num_resubmissions=0,
+    max_num_resubmissions=10,
     verbose=False,
     # slurm specific
     # --------------
