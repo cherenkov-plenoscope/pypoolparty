@@ -40,13 +40,13 @@ def test_make_worker_node_script():
 
 def test_make_environ_str():
     s = ppp.making_script.make_os_environ_string(environ={"a": "b"})
-    assert s == 'os.environ["a"] = "b"\n'
+    assert s == 'os.environ["a"] = str(bytes([98]))\n'
 
     s = ppp.making_script.make_os_environ_string(environ={"a'b": "b"})
-    assert s == 'os.environ["a\'b"] = "b"\n'
+    assert s == 'os.environ["a\'b"] = str(bytes([98]))\n'
 
     s = ppp.making_script.make_os_environ_string(environ={'a"b': "b"})
-    assert s == 'os.environ[\'a"b\'] = "b"\n'
+    assert s == 'os.environ[\'a"b\'] = str(bytes([98]))\n'
 
     s = ppp.making_script.make_os_environ_string(environ={'a"b': "b'c"})
-    assert s == "os.environ['a\"b'] = \"b'c\"\n"
+    assert s == "os.environ['a\"b'] = str(bytes([98, 39, 99]))\n"

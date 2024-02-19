@@ -75,20 +75,17 @@ def make_os_environ_string(environ):
     """
     env = io.StringIO()
     for key in environ:
+        value = environ[key]
         keydec = key.encode("unicode_escape").decode()
-        valdec = environ[key].encode("unicode_escape").decode()
 
         if '"' in keydec:
-            keytmpl = "os.environ['{key:s}']"
+            start = "os.environ['{key:s}']".format(key=keydec)
         else:
-            keytmpl = 'os.environ["{key:s}"]'
-        if '"' in valdec:
-            valtmpl = " = '{value:s}'\n"
-        else:
-            valtmpl = ' = "{value:s}"\n'
-        tmpl = keytmpl + valtmpl
+            start = 'os.environ["{key:s}"]'.format(key=keydec)
 
-        line = tmpl.format(key=keydec, value=valdec)
+        iiivalue = [int(b) for b in bytes(value, "utf8")]
+        stop = "str(bytes(" + str(iiivalue) + "))" + "\n"
+        line = start + " = " + stop
         env.write(line)
     env.seek(0)
     return env.read()
