@@ -3,6 +3,19 @@ import glob
 import os
 
 
+class SerialPool:
+    def __init__(self, verbose=True):
+        self.verbose = verbose
+
+    def map(self, func, iterable):
+        results = []
+        for i, item in enumerate(iterable):
+            print("SerialPool compute {:d} of {:d}".format(i, len(iterable)))
+            result = func(item)
+            results.append(result)
+        return results
+
+
 def list_ids(work_dir, wildcard, num_digits_jobid=9):
     paths = glob.glob(os.path.join(work_dir, wildcard))
     basenames = [os.path.basename(path) for path in paths]
