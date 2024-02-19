@@ -84,7 +84,7 @@ def make_os_environ_string(environ):
             start = 'os.environ["{key:s}"]'.format(key=keydec)
 
         iiivalue = [int(b) for b in bytes(value, "utf8")]
-        stop = "str(bytes(" + str(iiivalue) + "))" + "\n"
+        stop = "bytes(" + str(iiivalue) + ").decode()" + "\n"
         line = start + " = " + stop
         env.write(line)
     env.seek(0)
