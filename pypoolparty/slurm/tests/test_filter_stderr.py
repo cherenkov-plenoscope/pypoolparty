@@ -24,7 +24,12 @@ def test_slurm_filter_stderr_only_newline():
 def test_slurm_filter_stderr_slurm_foo():
     ierr = [
         "one",
+        (
+            "slurmstepd: error: slurm_get_node_energy: "
+            "Socket timed out on send/recv operation"
+        ),
         "two",
+        "slurmstepd: error: _get_joules_task: can't get info from slurmd",
         "three",
         "slurmstepd: error: blablabla ... DUE TO JOB NOT ENDING WITH SIGNALS",
     ]

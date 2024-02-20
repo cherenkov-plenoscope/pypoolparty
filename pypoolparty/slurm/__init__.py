@@ -166,12 +166,15 @@ def filter_stderr(stderr):
     lines = str.splitlines(stderr)
     out = []
     for line in lines:
+        line_contains_slurm_foo = False
+
         if "slurmstepd: error:" in line:
             for slurm_foo in slurm_foos:
                 if slurm_foo in line:
-                    continue
+                    line_contains_slurm_foo = True
 
-        out.append(line)
+        if not line_contains_slurm_foo:
+            out.append(line)
 
     out = str.join("\n", out)
     if ends_with_newline:
