@@ -147,19 +147,30 @@ def filter_stderr(stderr):
         slurmstepd: error: *** JOB 123456 STEPD TERMINATED ON node12 AT
         1846-03-28T02:04:23 DUE TO JOB NOT ENDING WITH SIGNALS ***
         '''
+        and
+        '''
+        slurmstepd: error: slurm_get_node_energy: Socket timed out on send/recv operation
+        slurmstepd: error: _get_joules_task: can't get info from slurmd
+        '''
     """
     ends_with_newline = False
     if len(stderr) > 0:
         ends_with_newline = stderr[-1] == "\n"
 
+    slurm_foos = [
+        "DUE TO JOB NOT ENDING WITH SIGNALS",
+        "slurm_get_node_energy: Socket timed out on send/recv operation",
+        "_get_joules_task: can't get info from slurmd",
+    ]
+
     lines = str.splitlines(stderr)
     out = []
     for line in lines:
-        if (
-            "slurmstepd: error:" in line
-            and "DUE TO JOB NOT ENDING WITH SIGNALS" in line
-        ):
-            continue
+        if "slurmstepd: error:" in line:
+            for slurm_foo in slurm_foos:
+                if slurm_foo in line:
+                    continue
+
         out.append(line)
 
     out = str.join("\n", out)
