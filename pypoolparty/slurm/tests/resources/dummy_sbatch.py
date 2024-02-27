@@ -36,6 +36,7 @@ job = {
     "JOBID": jobid,
     "NAME": args.job_name,
     "REASON": "foobar",
+    "PRIORITY": "0.999",
     "_opath": args.output,
     "_epath": args.error,
     "_python_path": _python_path,

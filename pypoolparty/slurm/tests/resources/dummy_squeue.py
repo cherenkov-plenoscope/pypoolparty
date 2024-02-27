@@ -13,7 +13,7 @@ def job_head():
 
 
 def job_head_to_line():
-    return "NAME|JOBID|STATE|REASON"
+    return "NAME|JOBID|STATE|REASON|PRIORITY"
 
 
 def job_to_line(job, delimiter="|"):
