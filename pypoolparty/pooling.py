@@ -9,33 +9,29 @@ def session_id_from_time_now():
     return time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
 
 
-def make_jobname_from_ichunk(session_id, ichunk):
-    return "q{:s}#{:09d}".format(session_id, ichunk)
+def make_jobname_from_task_id(session_id, task_id):
+    return "q{:s}#{:09d}".format(session_id, task_id)
 
 
-def make_ichunk_from_jobname(jobname):
-    ichunk_str = jobname.split("#")[1]
-    return int(ichunk_str)
+def make_task_id_from_jobname(jobname):
+    task_id_str = jobname.split("#")[1]
+    return int(task_id_str)
 
 
-def chunk_path(work_dir, ichunk):
-    return os.path.join(work_dir, "{:09d}.pkl".format(ichunk))
+def task_path(work_dir, task_id):
+    return os.path.join(work_dir, "{:09d}.pkl".format(task_id))
 
 
-def map_tasks_into_work_dir(work_dir, tasks, chunks, session_id):
-    jobnames_in_session = set()
-    for ichunk, chunk in enumerate(chunks):
-        jobname = make_jobname_from_ichunk(
-            session_id=session_id,
-            ichunk=ichunk,
-        )
-        jobnames_in_session.add(jobname)
-        chunk_payload = [tasks[itask] for itask in chunk]
-        utils.write_pickle(
-            path=chunk_path(work_dir, ichunk),
-            content=chunk_payload,
-        )
-    return jobnames_in_session
+def map_task_into_work_dir(work_dir, task, task_id, session_id):
+    jobname = make_jobname_from_task_id(
+        session_id=session_id,
+        task_id=task_id,
+    )
+    utils.write_pickle(
+        path=task_id(work_dir=work_dir, task_id=task_id),
+        content=task,
+    )
+    return jobname
 
 
 def reduce_task_results_from_work_dir(work_dir, chunks, logger):

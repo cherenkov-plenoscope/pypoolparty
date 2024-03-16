@@ -38,25 +38,20 @@ def make(func_module, func_name, environ, shebang=None):
     scr.write(make_os_environ_string(environ=environ))
     scr.write("\n")
     scr.write("assert(len(sys.argv) == 2)\n")
-    scr.write("chunk = ppp.utils.read_pickle(path=sys.argv[1])\n")
-    scr.write("task_results = []\n")
-    scr.write("for j, task in enumerate(chunk):\n")
-    scr.write("    try:\n")
-    scr.write(
-        "        task_result = {func_module:s}.{func_name:s}(task)\n".format(
+    scr.write("task = ppp.utils.read_pickle(path=sys.argv[1])\n")
+    scr.write("try:\n")
+    scr.write("    result = {func_module:s}.{func_name:s}(task)\n".format(
             func_module=func_module,
             func_name=func_name,
         )
     )
-    scr.write("    except Exception as bad:\n")
-    scr.write('        print("[task ", j, ", in chunk]", file=sys.stderr)\n')
-    scr.write("        print(bad, file=sys.stderr)\n")
-    scr.write("        task_result = None\n")
-    scr.write("    task_results.append(task_result)\n")
+    scr.write("except Exception as bad:\n")
+    scr.write("    print(str(bad), file=sys.stderr)\n")
+    scr.write("    result = None\n")
     scr.write("\n")
     scr.write("ppp.utils.write_pickle(\n")
     scr.write('    path=sys.argv[1]+".out",\n')
-    scr.write("    content=task_results,\n")
+    scr.write("    content=result,\n")
     scr.write(")\n")
     scr.seek(0)
     return scr.read()

@@ -111,10 +111,11 @@ class Pool:
         """
         tasks = iterable
         session_id = utils.session_id_from_time_now()
+        opj = os.path.join
 
         if self.work_dir is None:
             swd = os.path.abspath(
-                os.path.join(".", ".pypoolparty_" + session_id)
+                opj(".", ".pypoolparty_" + session_id)
             )
         else:
             swd = os.path.abspath(self.work_dir)
@@ -123,17 +124,17 @@ class Pool:
         if self.verbose:
             self.print("start: {:s}".format(swd))
 
-        sl = json_line_logger.LoggerFile(path=os.path.join(swd, "log.jsonl"))
+        logger = json_line_logger.LoggerFile(path=opj(swd, "log.jsonl"))
 
-        sl.debug("Starting map()")
-        sl.debug("python path: {:s}".format(self.python_path))
-        sl.debug("polling-interval: {:f}s".format(self.polling_interval))
-        sl.debug(
+        logger.debug("Starting map()")
+        logger.debug("python path: {:s}".format(self.python_path))
+        logger.debug("polling-interval: {:f}s".format(self.polling_interval))
+        logger.debug(
             "max. num. resubmissions: {:d}".format(self.max_num_resubmissions)
         )
 
-        script_path = os.path.join(swd, "worker_node_script.py")
-        sl.debug("Writing worker-node-script: {:s}".format(script_path))
+        script_path = opj(swd, "worker_node_script.py")
+        logger.debug("Writing worker-node-script: {:s}".format(script_path))
         shebang = "#!{:s}".format(self.python_path)
         script_content = making_script.make(
             func_module=func.__module__,
@@ -144,63 +145,63 @@ class Pool:
         utils.write_text(path=script_path, content=script_content)
         utils.make_path_executable(path=script_path)
 
-        sl.debug("Make chunks of tasks")
+        logger.debug("Waiting for jobs to finish")
 
-        chunks = chunking.assign_tasks_to_chunks(
-            num_tasks=len(tasks),
-            num_chunks=self.num_chunks,
-        )
+        jobs = job_organizer.init_from_tasks(tasks=tasks)
 
-        sl.debug("Mapping chunks of tasks into work_dir")
+        while True:
+            # -----------------------
+            # estimate state of queue
+            # -----------------------
 
-        jobnames_in_session = pooling.map_tasks_into_work_dir(
-            work_dir=swd,
-            tasks=tasks,
-            chunks=chunks,
-            session_id=session_id,
-        )
-
-        sl.debug("Submitting jobs")
-
-        for jobname in jobnames_in_session:
-            ichunk = pooling.make_ichunk_from_jobname(jobname=jobname)
-            self.submit_func(
-                jobname=jobname,
-                script_path=script_path,
-                script_arguments=[pooling.chunk_path(swd, ichunk)],
-                stdout_path=pooling.chunk_path(swd, ichunk) + ".o",
-                stderr_path=pooling.chunk_path(swd, ichunk) + ".e",
-                logger=sl,
-                **self.submit_func_kwargs,
-            )
-
-        sl.debug("Waiting for jobs to finish")
-
-        still_running = True
-        num_resubmissions_by_ichunk = {}
-        last_job_count = job_counter.init()
-
-        while still_running:
             job_stati = self.status_func(
                 jobnames=jobnames_in_session,
-                logger=sl,
+                logger=logger,
                 **self.status_func_kwargs,
             )
-            job_count = job_counter.estimate(
-                num_jobs_running=len(job_stati["running"]),
-                num_jobs_pending=len(job_stati["pending"]),
-                num_jobs_error=len(job_stati["error"]),
-                num_resubmissions_by_ichunk=num_resubmissions_by_ichunk,
-                max_num_resubmissions=self.max_num_resubmissions,
+
+            jobs_states_have_changed = job_organizer.set_states(
+                jobs=jobs, job_stati=job_stati,
             )
 
-            if not job_counter.is_equal(job_count, last_job_count):
-                msg = job_counter.to_str(job_count)
-                sl.info(msg)
+            if jobs_states_have_changed:
+                msg = job_organizer.to_str(jobs=jobs)
+                logger.info(msg)
                 if self.verbose:
                     self.print(msg)
 
-            last_job_count = job_count
+            # --------------------------------
+            # Submitt jobs when slots are free
+            # --------------------------------
+
+            num_new_jobs = (
+                num_chunks - len(job_stati["running"]) - len(job_stati["pending"])
+            )
+
+            for i in range(num_new_jobs):
+                jobnames_in_session:
+                jobname = pooling.map_task_into_work_dir(
+                    work_dir=swd,
+                    task=task,
+                    task_id=task_id,
+                    session_id=session_id,
+                )
+
+                task_id = pooling.make_task_id_from_jobname(jobname=jobname)
+
+                self.submit_func(
+                    jobname=jobname,
+                    script_path=script_path,
+                    script_arguments=[pooling.task_path(swd, task_id)],
+                    stdout_path=pooling.task_path(swd, task_id) + ".o",
+                    stderr_path=pooling.task_path(swd, task_id) + ".e",
+                    logger=logger,
+                    **self.submit_func_kwargs,
+                )
+
+
+
+
 
             for job in job_stati["error"]:
                 ichunk = pooling.make_ichunk_from_jobname(jobname=job["name"])
@@ -212,16 +213,16 @@ class Pool:
                 job_id_str = "name {:s}, ichunk {:09d}".format(
                     job["name"], ichunk
                 )
-                sl.warning("Found error-state in: {:s}".format(job_id_str))
-                sl.warning("Deleting: {:s}".format(job_id_str))
+                logger.warning("Found error-state in: {:s}".format(job_id_str))
+                logger.warning("Deleting: {:s}".format(job_id_str))
 
-                self.delete_func(job=job, logger=sl, **self.delete_func_kwargs)
+                self.delete_func(job=job, logger=logger, **self.delete_func_kwargs)
 
                 if (
                     num_resubmissions_by_ichunk[ichunk]
                     <= self.max_num_resubmissions
                 ):
-                    sl.warning(
+                    logger.warning(
                         "Resubmitting {:d} of {:d}, jobname {:s}".format(
                             num_resubmissions_by_ichunk[ichunk],
                             self.max_num_resubmissions,
@@ -234,29 +235,29 @@ class Pool:
                         script_arguments=[pooling.chunk_path(swd, ichunk)],
                         stdout_path=pooling.chunk_path(swd, ichunk) + ".o",
                         stderr_path=pooling.chunk_path(swd, ichunk) + ".e",
-                        logger=sl,
+                        logger=logger,
                         **self.submit_func_kwargs,
                     )
 
             if job_stati["error"]:
                 utils.write_text(
-                    path=os.path.join(swd, "num_resubmissions_by_ichunk.json"),
+                    path=opj(swd, "num_resubmissions_by_ichunk.json"),
                     content=json.dumps(num_resubmissions_by_ichunk, indent=4),
                 )
 
             if job_count["running"] == 0 and job_count["pending"] == 0:
                 still_running = False
 
-            time.sleep(self.polling_interval)
+            time.loggereep(self.polling_interval)
 
-        sl.debug("Reducing results from work_dir")
+        logger.debug("Reducing results from work_dir")
         (
             task_results_are_incomplete,
             task_results,
         ) = pooling.reduce_task_results_from_work_dir(
             work_dir=swd,
             chunks=chunks,
-            logger=sl,
+            logger=logger,
         )
 
         has_stderr = pooling.has_invalid_or_non_empty_stderr(
@@ -265,19 +266,19 @@ class Pool:
             filter_stderr_func=self.filter_stderr_func,
         )
         if has_stderr:
-            sl.warning(
+            logger.warning(
                 "At least one task wrote to std-error or was not processed at all"
             )
 
         if has_stderr or self.keep_work_dir or task_results_are_incomplete:
             remove_work_dir = False
-            sl.warning("Keeping work_dir: {:s}".format(swd))
+            logger.warning("Keeping work_dir: {:s}".format(swd))
         else:
             remove_work_dir = True
-            sl.debug("Removing work_dir: {:s}".format(swd))
+            logger.debug("Removing work_dir: {:s}".format(swd))
 
-        utils.shutdown_logger(logger=sl)
-        del sl
+        utils.shutdown_logger(logger=logger)
+        del logger
 
         if remove_work_dir:
             shutil.rmtree(swd)

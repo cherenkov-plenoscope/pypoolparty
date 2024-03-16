@@ -13,7 +13,7 @@ def estimate(
     num_jobs_running,
     num_jobs_pending,
     num_jobs_error,
-    num_resubmissions_by_ichunk,
+    num_resubmissions_by_task_id,
     max_num_resubmissions,
 ):
     num_jobs = init()
@@ -21,8 +21,8 @@ def estimate(
     num_jobs["pending"] = num_jobs_pending
     num_jobs["error"] = num_jobs_error
     num_jobs["lost"] = 0
-    for ichunk in num_resubmissions_by_ichunk:
-        if num_resubmissions_by_ichunk[ichunk] >= max_num_resubmissions:
+    for task_id in num_resubmissions_by_task_id:
+        if num_resubmissions_by_task_id[task_id] >= max_num_resubmissions:
             num_jobs["lost"] += 1
     return num_jobs
 
