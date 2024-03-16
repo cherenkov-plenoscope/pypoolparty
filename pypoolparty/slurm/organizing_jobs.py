@@ -20,7 +20,7 @@ def split_jobs_in_running_pending_error(jobs, logger=None):
     error = []
 
     for job in jobs:
-        if job["state"] == "RUNNING":
+        if job["state"] == "RUNNING" or job["state"] == "COMPLETING":
             running.append(job)
         elif job["state"] == "PENDING":
             pending.append(job)
