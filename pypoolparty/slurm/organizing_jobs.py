@@ -20,13 +20,15 @@ def split_jobs_in_running_pending_error(jobs, logger=None):
     error = []
 
     for job in jobs:
+        resub_might_help = job_is_in_state_which_might_be_solved_by_resubmission(
+            job=job, logger=logger
+        )
+
         if job["state"] == "RUNNING" or job["state"] == "COMPLETING":
             running.append(job)
-        elif job["state"] == "PENDING":
+        elif job["state"] == "PENDING" and not resub_might_help:
             pending.append(job)
-        elif job_is_in_state_which_might_be_solved_by_resubmission(
-            job=job, logger=logger
-        ):
+        elif resub_might_help:
             error.append(job)
             logger.info(make_log_msg_simple_job_state(job=job))
         else:
@@ -50,6 +52,7 @@ def job_is_in_state_which_might_be_solved_by_resubmission(job, logger):
         "bad",
         "fail",
         "halt",
+        "held",
     ]
 
     low = str.lower
