@@ -20,8 +20,10 @@ def split_jobs_in_running_pending_error(jobs, logger=None):
     error = []
 
     for job in jobs:
-        resub_might_help = job_is_in_state_which_might_be_solved_by_resubmission(
-            job=job, logger=logger
+        resub_might_help = (
+            job_is_in_state_which_might_be_solved_by_resubmission(
+                job=job, logger=logger
+            )
         )
 
         if job["state"] == "RUNNING" or job["state"] == "COMPLETING":
