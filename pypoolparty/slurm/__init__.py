@@ -1,3 +1,4 @@
+from . import array
 from . import testing
 from . import call
 from . import organizing_jobs
