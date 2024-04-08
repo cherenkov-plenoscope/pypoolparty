@@ -4,6 +4,7 @@ import shutil
 import time
 import rename_after_writing
 import pickle
+import random
 
 
 def make_path_executable(path):
@@ -79,6 +80,13 @@ def shutdown_logger(logger):
         logger.removeHandler(fh)
 
 
+def make_logger_to_stdout_if_none(logger):
+    if logger is None:
+        return json_line_logger.LoggerStdout()
+    else:
+        return logger
+
+
 def add_doc(value):
     """
     A decorater to add __doc__ to a function.
@@ -89,3 +97,16 @@ def add_doc(value):
         return func
 
     return _doc
+
+
+def raise_if_too_often(numtry, max_num_retry, logger):
+    if numtry >= max_num_retry:
+        msg = "Aborting. Too many retries."
+        logger.critical(msg)
+        raise RuntimeError(msg)
+
+
+def random_sleep(timecooldown, logger):
+    delta_time = timecooldown * random.uniform(1 / 2, 3 / 2)
+    logger.warning("waiting for {:f}s".format(float(delta_time)))
+    time.sleep(delta_time)

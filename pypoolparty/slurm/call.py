@@ -36,7 +36,7 @@ def sbatch(
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -49,7 +49,7 @@ def sbatch(
         except Exception as bad:
             logger.warning("Problem in sbatch()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
 
 
 def scancel(
@@ -67,7 +67,7 @@ def scancel(
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -80,7 +80,7 @@ def scancel(
         except Exception as bad:
             logger.warning("Problem in scancel()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
 
 
 def squeue(
@@ -113,7 +113,7 @@ def squeue(
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -128,7 +128,7 @@ def squeue(
         except Exception as bad:
             logger.warning("problem in _squeue_format_all_stdout()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
 
     logger.debug("parsing stdout into list of dicts")
 
@@ -201,16 +201,3 @@ def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
 
     logger.debug("len(stdout) = {:d}".format(len(stdout)))
     return stdout
-
-
-def sleep(timecooldown, logger):
-    delta_time = timecooldown * random.uniform(1 / 2, 3 / 2)
-    logger.warning("waiting for {:f}s".format(float(delta_time)))
-    time.sleep(delta_time)
-
-
-def raise_if_too_often(numtry, max_num_retry, logger):
-    if numtry >= max_num_retry:
-        msg = "Aborting. Too many retries."
-        logger.critical(msg)
-        raise RuntimeError(msg)

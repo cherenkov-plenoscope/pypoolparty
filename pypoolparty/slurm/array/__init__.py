@@ -7,6 +7,7 @@ import subprocess
 import json_line_logger
 import os
 import time
+import shutil
 
 
 class Pool:
@@ -23,11 +24,13 @@ class Pool:
             self.python_path = utils.default_python_path()
         else:
             self.python_path = python_path
-        self.polling_interval = polling_interval
+
         self.work_dir = work_dir
-        self.keep_work_dir = keep_work_dir
+        self.polling_interval = float(polling_interval)
+        assert self.polling_interval > 0.0
+        self.keep_work_dir = bool(keep_work_dir)
         self.processes = processes
-        self.verbose = verbose
+        self.verbose = bool(verbose)
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
@@ -39,80 +42,99 @@ class Pool:
         tasks = iterable
         session_id = utils.session_id_from_time_now()
         if self.work_dir is None:
-            swd = os.path.abspath(
+            work_dir = os.path.abspath(
                 os.path.join(".", ".pypoolparty_slurm_array_" + session_id)
             )
         else:
-            swd = os.path.abspath(self.work_dir)
+            work_dir = os.path.abspath(self.work_dir)
 
-        os.makedirs(swd)
+        os.makedirs(work_dir)
         if self.verbose:
-            self.print("start: {:s}".format(swd))
+            self.print("start: {:s}".format(work_dir))
 
-        sl = json_line_logger.LoggerFile(path=os.path.join(swd, "log.jsonl"))
+        logger = json_line_logger.LoggerFile(
+            path=os.path.join(work_dir, "log.jsonl")
+        )
 
-        sl.debug("Starting map()")
-        sl.debug("python path: {:s}".format(self.python_path))
-        sl.debug("polling-interval: {:f}s".format(self.polling_interval))
+        logger.debug("Starting map()")
+        logger.debug("python path: {:s}".format(self.python_path))
+        logger.debug("polling-interval: {:f}s".format(self.polling_interval))
 
-        sl.debug("Making script.")
-        script_path = os.path.join(swd, "script.py")
+        logger.debug("Making script.")
+        script_path = os.path.join(work_dir, "script.py")
         script_content = making_script.make(
             func_module=func.__module__,
             func_name=func.__name__,
             shebang="#!{:s}".format(self.python_path),
-            work_dir=swd,
+            work_dir=work_dir,
         )
         utils.write_text(path=script_path, content=script_content)
         utils.make_path_executable(path=script_path)
 
-        mapping.write_tasks_to_work_dir(work_dir=swd, tasks=tasks)
-        sl.debug("Wrote {:d} tasks into work_dir.".format(len(tasks)))
+        mapping.write_tasks_to_work_dir(work_dir=work_dir, tasks=tasks)
+        logger.debug("Wrote {:d} tasks into work_dir.".format(len(tasks)))
 
-        sl.debug("Calling sbatch --array.")
+        logger.debug("Calling sbatch --array.")
         call_sbatch_array(
-            work_dir=swd,
+            work_dir=work_dir,
             jobname=session_id,
             start_task_id=0,
             stop_task_id=len(iterable) - 1,
             num_simultaneously_running_tasks=self.processes,
         )
 
-        sl.debug("Prepare reducing of results.")
-        reducer = reducing.Reducer(work_dir=swd)
-        num_task_results_last_poll = reducer.num_task_results
+        logger.debug("Prepare reducing of results.")
+        reducer = reducing.Reducer(work_dir=work_dir)
+        num_tasks_returned_last_poll = len(reducer.tasks_returned)
 
-        sl.debug("Wait for tasks to finish.")
+        logger.debug("Wait for tasks to finish.")
         while True:
             reducer.reduce()
 
-            if self.verbose:
-                if reducer.num_task_results > num_task_results_last_poll:
-                    self.print(
-                        "{: 6d} of {: 6d}".format(
-                            reducer.num_task_results, len(tasks)
-                        )
-                    )
+            poll_msg = "returned: {: 6d}/{: 6d}".format(
+                len(reducer.tasks_returned), len(tasks)
+            )
+            if len(reducer.tasks_exceptions) or len(reducer.tasks_with_stderr):
+                poll_msg += ", exceptions: {: 6d}, stderr: {: 6d}".format(
+                    len(reducer.tasks_exceptions),
+                    len(reducer.tasks_with_stderr),
+                )
 
-            if reducer.num_task_results == len(tasks):
-                sl.debug("complete")
+            logger.debug(poll_msg)
+            if self.verbose:
+                if len(reducer.tasks_returned) > num_tasks_returned_last_poll:
+                    self.print(poll_msg)
+
+            if len(reducer.tasks_returned) == len(tasks):
+                logger.debug("complete")
                 break
 
-            num_task_results_last_poll = int(reducer.num_task_results)
+            num_tasks_returned_last_poll = int(len(reducer.tasks_returned))
             time.sleep(self.polling_interval)
 
         reducer.close()
 
-        task_results = reducing.read_task_results(
-            path=os.path.join(swd, "tasks.results.tar")
+        remove_this_work_dir = True
+
+        if self.keep_work_dir:
+            remove_this_work_dir = False
+
+        if len(reducer.tasks_exceptions) > 0:
+            remove_this_work_dir = False
+
+        if len(reducer.tasks_with_stderr) > 0:
+            remove_this_work_dir = False
+
+        out = reducing.read_task_results(
+            work_dir=work_dir, len_tasks=len(tasks), logger=sl
         )
-        out = []
-        for task_id in range(len(tasks)):
-            if task_id in task_results:
-                out.append(task_results.pop(task_id))
-            else:
-                out.append(None)
-                sl.error("No result found for task_id {:d}.".format(task_id))
+
+        utils.shutdown_logger(logger=sl)
+        del sl
+
+        if remove_this_work_dir:
+            shutil.rmtree(work_dir)
+
         return out
 
 
@@ -124,7 +146,11 @@ def call_sbatch_array(
     num_simultaneously_running_tasks=None,
     sbatch_path="sbatch",
     timeout=None,
+    timecooldown=1.0,
+    max_num_retry=25,
+    logger=None,
 ):
+    logger = utils.make_logger_to_stdout_if_none(logger)
     assert start_task_id >= 0
     assert stop_task_id >= stop_task_id
 
@@ -132,6 +158,9 @@ def call_sbatch_array(
     if num_simultaneously_running_tasks is None:
         cmd += ["--array", "{:d}-{:d}".format(start_task_id, stop_task_id)]
     else:
+        num_simultaneously_running_tasks = int(
+            num_simultaneously_running_tasks
+        )
         assert num_simultaneously_running_tasks > 0
         cmd += [
             "--array",
@@ -140,13 +169,27 @@ def call_sbatch_array(
             ),
         ]
 
+    logger.debug("Call: " + str.join(" ", cmd))
+
     cmd += ["--output", os.path.join(work_dir, "%a.stdout")]
     cmd += ["--error", os.path.join(work_dir, "%a.stderr")]
     cmd += ["--job-name", jobname]
     cmd += [os.path.join(work_dir, "script.py")]
 
-    subprocess.check_output(
-        cmd,
-        stderr=subprocess.STDOUT,
-        timeout=timeout,
-    )
+    numtry = 0
+    while True:
+        utils.raise_if_too_often(
+            numtry=numtry, max_num_retry=max_num_retry, logger=logger
+        )
+        try:
+            numtry += 1
+            subprocess.check_output(
+                cmd, stderr=subprocess.STDOUT, timeout=timeout
+            )
+            break
+        except Exception as bad:
+            logger.warning(
+                "Problem calling sbatch, num. tries = {:d}".format(numtry)
+            )
+            logger.warning(str(bad))
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
