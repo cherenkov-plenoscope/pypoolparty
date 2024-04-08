@@ -10,11 +10,11 @@ def read_task_from_work_dir(work_dir, task_id):
         work_dir=work_dir, task_id=task_id
     )
 
-    with sequential_tar.open(task_block_path, "r") as tf:
+    with sequential_tar.open(name=task_block_path, mode="r") as tf:
         for item in tf:
-            item_task_id = int(re.findall(r"\d+", item.filename)[0])
+            item_task_id = int(re.findall(r"\d+", item.name)[0])
             if item_task_id == task_id:
-                task_pkl = item.read(mode="rb|gz")
+                task_pkl = item.read(mode="rb")
                 task = pickle.loads(task_pkl)
                 return task
 
@@ -39,15 +39,15 @@ def write_tasks_to_work_dir(
     block_max_filesize=2**24,
 ):
     tf_tmp_path = os.path.join(work_dir, "tasks.tar.part")
-    tf = sequential_tar.open(tf_tmp_path, "w")
+    tf = sequential_tar.open(name=tf_tmp_path, mode="w")
     tf_filesize = 0
     tf_task_id_start = 0
 
     for task_id in range(len(tasks)):
         tf_filesize += tf.write(
-            filename="{:d}.pickle.gz".format(task_id),
+            name="{:d}.pickle".format(task_id),
             payload=pickle.dumps(tasks[task_id]),
-            mode="wb|gz",
+            mode="wb",
         )
 
         if tf_filesize > block_max_filesize:
@@ -61,7 +61,7 @@ def write_tasks_to_work_dir(
             )
             os.rename(tf_tmp_path, tf_final_path)
 
-            tf = sequential_tar.open(tf_tmp_path, "w")
+            tf = sequential_tar.open(name=tf_tmp_path, mode="w")
             tf_filesize = 0
             tf_task_id_start = task_id + 1
 

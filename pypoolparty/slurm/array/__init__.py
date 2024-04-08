@@ -5,6 +5,8 @@ from ... import utils
 
 import subprocess
 import json_line_logger
+import os
+import time
 
 
 class Pool:
@@ -25,6 +27,7 @@ class Pool:
         self.work_dir = work_dir
         self.keep_work_dir = keep_work_dir
         self.processes = processes
+        self.verbose = verbose
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
@@ -63,6 +66,9 @@ class Pool:
         utils.write_text(path=script_path, content=script_content)
         utils.make_path_executable(path=script_path)
 
+        mapping.write_tasks_to_work_dir(work_dir=swd, tasks=tasks)
+        sl.debug("Wrote {:d} tasks into work_dir.".format(len(tasks)))
+
         sl.debug("Calling sbatch --array.")
         call_sbatch_array(
             work_dir=swd,
@@ -97,8 +103,8 @@ class Pool:
 
         reducer.close()
 
-        task_results = reducing.read_results(
-            path=os.path.join(work_dir, "task.results.tar")
+        task_results = reducing.read_task_results(
+            path=os.path.join(swd, "tasks.results.tar")
         )
         out = []
         for task_id in range(len(tasks)):
