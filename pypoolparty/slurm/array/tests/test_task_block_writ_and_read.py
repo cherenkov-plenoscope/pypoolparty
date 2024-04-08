@@ -38,7 +38,7 @@ def test_many_big_tasks():
         )
 
         matches = glob.glob(os.path.join(tmp, "*.tar"))
-        assert len(matches) == 5
+        assert len(matches) == 10
 
         for task_id in range(len(tasks)):
             task = pypoolparty.slurm.array.mapping.read_task_from_work_dir(
