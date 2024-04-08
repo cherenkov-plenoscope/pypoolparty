@@ -37,7 +37,9 @@ def make(func_module, func_name, work_dir, shebang=None):
         )
     )
     scr.write("ppp.slurm.array.reducing.write_task_result(\n")
-    scr.write('    path=os.path.join(work_dir, "{:d}.pickle".format(task_id)),\n')
+    scr.write(
+        '    path=os.path.join(work_dir, "{:d}.pickle".format(task_id)),\n'
+    )
     scr.write("    task_result=task_result,\n")
     scr.write('    mode="wb",\n')
     scr.write(")\n")

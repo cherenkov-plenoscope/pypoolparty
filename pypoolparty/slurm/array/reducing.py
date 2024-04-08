@@ -28,8 +28,12 @@ class Reducer:
             task_id = int(re.findall(r"\d+", result_basename)[0])
             result_stdout_basename = "{:d}.stdout".format(task_id)
             result_stderr_basename = "{:d}.stderr".format(task_id)
-            result_stdout_path = os.path.join(self.work_dir, result_stdout_basename)
-            result_stderr_path = os.path.join(self.work_dir, result_stderr_basename)
+            result_stdout_path = os.path.join(
+                self.work_dir, result_stdout_basename
+            )
+            result_stderr_path = os.path.join(
+                self.work_dir, result_stderr_basename
+            )
 
             with open(result_path, "rb") as f:
                 self.tar_results.write(
