@@ -131,3 +131,4 @@ def read_task_results(work_dir, len_tasks, logger=None):
         else:
             out.append(None)
             logger.error("No result found for task_id {:d}.".format(task_id))
+    return out

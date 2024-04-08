@@ -81,17 +81,18 @@ class Pool:
             start_task_id=0,
             stop_task_id=len(iterable) - 1,
             num_simultaneously_running_tasks=self.processes,
+            logger=logger,
         )
 
         logger.debug("Prepare reducing of results.")
         reducer = reducing.Reducer(work_dir=work_dir)
-        num_tasks_returned_last_poll = len(reducer.tasks_returned)
+        num_tasks_returned_last_poll = -1
 
         logger.debug("Wait for tasks to finish.")
         while True:
             reducer.reduce()
 
-            poll_msg = "returned: {: 6d}/{: 6d}".format(
+            poll_msg = "returned: {: 6d} / {:d}".format(
                 len(reducer.tasks_returned), len(tasks)
             )
             if len(reducer.tasks_exceptions) or len(reducer.tasks_with_stderr):
@@ -126,11 +127,11 @@ class Pool:
             remove_this_work_dir = False
 
         out = reducing.read_task_results(
-            work_dir=work_dir, len_tasks=len(tasks), logger=sl
+            work_dir=work_dir, len_tasks=len(tasks), logger=logger,
         )
 
-        utils.shutdown_logger(logger=sl)
-        del sl
+        utils.shutdown_logger(logger=logger)
+        del logger
 
         if remove_this_work_dir:
             shutil.rmtree(work_dir)
