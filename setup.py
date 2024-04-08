@@ -27,6 +27,7 @@ setuptools.setup(
         "pypoolparty",
         "pypoolparty.sun_grid_engine",
         "pypoolparty.slurm",
+        "pypoolparty.slurm.array",
     ],
     package_data={
         "pypoolparty": [
