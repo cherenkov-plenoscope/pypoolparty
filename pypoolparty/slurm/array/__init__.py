@@ -52,6 +52,7 @@ class Pool:
         sl.debug("python path: {:s}".format(self.python_path))
         sl.debug("polling-interval: {:f}s".format(self.polling_interval))
 
+        sl.debug("Making script.")
         script_path = os.path.join(swd, "script.py")
         script_content = making_script.make(
             func_module=func.__module__,
@@ -62,6 +63,7 @@ class Pool:
         utils.write_text(path=script_path, content=script_content)
         utils.make_path_executable(path=script_path)
 
+        sl.debug("Calling sbatch --array.")
         call_sbatch_array(
             work_dir=swd,
             jobname=session_id,
@@ -70,9 +72,11 @@ class Pool:
             num_simultaneously_running_tasks=self.processes,
         )
 
+        sl.debug("Prepare reducing of results.")
         reducer = reducing.Reducer(work_dir=swd)
         num_task_results_last_poll = reducer.num_task_results
 
+        sl.debug("Wait for tasks to finish.")
         while True:
             reducer.reduce()
 
