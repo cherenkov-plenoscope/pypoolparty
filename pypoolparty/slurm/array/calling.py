@@ -18,7 +18,7 @@ def sbatch_array(
 ):
     logger = utils.make_logger_to_stdout_if_none(logger)
     assert start_task_id >= 0
-    assert stop_task_id >= stop_task_id
+    assert stop_task_id >= start_task_id
 
     cmd = [sbatch_path]
     if num_simultaneously_running_tasks is None:
