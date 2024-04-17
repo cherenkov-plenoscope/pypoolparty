@@ -3,6 +3,8 @@ from . import mapping
 from . import reducing
 from . import calling
 from ... import utils
+from .. import call as slurm_calling
+from .. import organizing_jobs
 
 import subprocess
 import json_line_logger
@@ -27,6 +29,7 @@ class Pool:
         verbose=False,
         sbatch_path="sbatch",
         squeue_path="squeue",
+        scancel_path="scancel",
     ):
         """
         Parameters
@@ -69,6 +72,7 @@ class Pool:
 
         self.sbatch_path = sbatch_path
         self.squeue_path = squeue_path
+        self.scancel_path = scancel_path
 
     def __repr__(self):
         return self.__class__.__name__ + "()"
@@ -103,6 +107,7 @@ class Pool:
 
         tasks = iterable  # to be consistent with multiprocessing's pool.map.
 
+        one_minute = 60.0
         if len(tasks) == 0:
             return []
 
@@ -161,19 +166,56 @@ class Pool:
         while True:
             reducer.reduce()
 
+            jobs = slurm_calling.squeue(
+                squeue_path=self.squeue_path,
+                jobname=jobname,
+                array=True,
+                timeout=one_minute,
+                logger=logger,
+                debug_dump_path=os.path.join(work_dir, "squeue.stdout"),
+            )
+            (
+                jobs_running,
+                jobs_pending,
+                jobs_error,
+            ) = organizing_jobs.split_jobs_in_running_pending_error(
+                jobs=jobs, logger=logger
+            )
+
             poll_msg = "complete: {: 6d} of {:d}, ".format(
                 len(reducer.tasks_returned), len(tasks)
             )
-            poll_msg += try_once_to_query_number_of_jobs_in_state(
-                jobname=jobname,
-                squeue_path=self.squeue_path,
-                work_dir=work_dir,
-                logger=logger,
+            poll_msg += (
+                "running: {: 6d}, pending: {: 6d}, error: {: 6d}".format(
+                    len(jobs_running), len(jobs_pending), len(jobs_error)
+                )
             )
             if len(reducer.tasks_exceptions) or len(reducer.tasks_with_stderr):
                 poll_msg += ", exceptions: {: 6d}, stderr: {: 6d}".format(
                     len(reducer.tasks_exceptions),
                     len(reducer.tasks_with_stderr),
+                )
+
+            if len(jobs_error) > 0:
+                task_ids_to_be_resubmitted = []
+                for job in jobs_error:
+                    slurm_calling.scancel(
+                        scancel_path=self.scancel_path,
+                        jobid=job["jobid"],
+                        timeout=one_minute,
+                        logger=logger,
+                    )
+                    task_ids_to_be_resubmitted.append(
+                        int(job["array_task_id"])
+                    )
+
+                calling.sbatch_array(
+                    work_dir=work_dir,
+                    jobname=jobname,
+                    task_ids=task_ids_to_be_resubmitted,
+                    num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
+                    logger=logger,
+                    sbatch_path=self.sbatch_path,
                 )
 
             logger.debug(poll_msg)
@@ -236,9 +278,10 @@ def try_once_to_query_number_of_jobs_in_state(
     num["running"] = 0
     num["strange"] = 0
     try:
-        jobs = calling.squeue_array(
-            jobname=jobname,
+        jobs = slurm_calling.squeue(
             squeue_path=squeue_path,
+            jobname=jobname,
+            array=True,
             timeout=10.0,
             max_num_retry=0,
             logger=logger,

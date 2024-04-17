@@ -53,7 +53,8 @@ def sbatch(
 
 
 def scancel(
-    jobname,
+    jobname=None,
+    jobid=None,
     scancel_path="scancel",
     timeout=None,
     timecooldown=1.0,
@@ -63,7 +64,11 @@ def scancel(
     if logger is None:
         logger = json_line_logger.LoggerStdout()
 
-    cmd = [scancel_path, "--name", str(jobname)]
+    cmd = [scancel_path]
+    if jobid is not None:
+        cmd += [jobid]
+    if jobname is not None:
+        cmd += ["--name", str(jobname)]
 
     numtry = 0
     while True:
@@ -85,6 +90,8 @@ def scancel(
 
 def squeue(
     squeue_path="squeue",
+    jobname=None,
+    array=False,
     timeout=None,
     timecooldown=1.0,
     max_num_retry=25,
@@ -121,6 +128,8 @@ def squeue(
             logger.debug("calling squeue, num. tries = {:d}".format(numtry))
             stdout = _squeue_format_all_stdout(
                 squeue_path=squeue_path,
+                jobname=jobname,
+                array=array,
                 timeout=timeout,
                 logger=logger,
             )
@@ -178,9 +187,19 @@ def _parse_stdout_format_all(stdout, delimiter="|", logger=None):
     return out
 
 
-def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
+def _squeue_format_all_stdout(
+    squeue_path="squeue", jobname=None, array=False, timeout=None, logger=None
+):
     if logger is None:
         logger = json_line_logger.LoggerStdout()
+
+    cmd = [squeue_path]
+    cmd += ["--me"]
+    cmd += ["--format", "%all"]
+    if array:
+        cmd += ["--array"]
+    if jobname is not None:
+        cmd += ["--name", jobname]
 
     with tempfile.TemporaryDirectory(prefix="slurmpypoolurm") as tmp:
         tmp_stdout_path = os.path.join(tmp, "stdout.txt")
@@ -190,10 +209,7 @@ def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
             logger.debug("timeout = {:f}s".format(float(timeout)))
 
         with open(tmp_stdout_path, "wt") as f:
-            p = subprocess.Popen(
-                [squeue_path, "--format", "%all"],
-                stdout=f,
-            )
+            p = subprocess.Popen(cmd, stdout=f)
             p.wait(timeout=timeout)
 
         with open(tmp_stdout_path, "rt") as f:
