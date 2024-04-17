@@ -25,6 +25,8 @@ class Pool:
         work_dir=None,
         keep_work_dir=False,
         verbose=False,
+        sbatch_path="sbatch",
+        squeue_path="squeue",
     ):
         """
         Parameters
@@ -65,6 +67,9 @@ class Pool:
         )
         self.verbose = bool(verbose)
 
+        self.sbatch_path = sbatch_path
+        self.squeue_path = squeue_path
+
     def __repr__(self):
         return self.__class__.__name__ + "()"
 
@@ -101,10 +106,10 @@ class Pool:
         if len(tasks) == 0:
             return []
 
-        session_id = utils.session_id_from_time_now()
+        jobname = utils.session_id_from_time_now()
         if self.work_dir is None:
             work_dir = os.path.abspath(
-                os.path.join(".", ".pypoolparty_slurm_array_" + session_id)
+                os.path.join(".", ".pypoolparty_slurm_array_" + jobname)
             )
         else:
             work_dir = os.path.abspath(self.work_dir)
@@ -138,11 +143,12 @@ class Pool:
         logger.debug("Calling sbatch --array...")
         calling.sbatch_array(
             work_dir=work_dir,
-            jobname=session_id,
+            jobname=jobname,
             start_task_id=0,
             stop_task_id=len(iterable) - 1,
             num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
             logger=logger,
+            sbatch_path=self.sbatch_path,
         )
         logger.debug("Calling sbatch --array: done.")
 
@@ -155,8 +161,14 @@ class Pool:
         while True:
             reducer.reduce()
 
-            poll_msg = "tasks: {: 6d} / {:d}".format(
+            poll_msg = "tasks: {: 6d} / {:d}, ".format(
                 len(reducer.tasks_returned), len(tasks)
+            )
+            poll_msg += try_once_to_query_number_of_jobs_in_state(
+                jobname=jobname,
+                squeue_path=self.squeue_path,
+                work_dir=work_dir,
+                logger=logger,
             )
             if len(reducer.tasks_exceptions) or len(reducer.tasks_with_stderr):
                 poll_msg += ", exceptions: {: 6d}, stderr: {: 6d}".format(
@@ -211,3 +223,39 @@ class Pool:
             shutil.rmtree(work_dir)
 
         return out
+
+
+def try_once_to_query_number_of_jobs_in_state(
+    jobname,
+    squeue_path,
+    work_dir,
+    logger,
+):
+    num = {}
+    num["pending"] = 0
+    num["running"] = 0
+    num["strange"] = 0
+    try:
+        jobs = calling.squeue_array(
+            jobname=jobname,
+            squeue_path=self.squeue_path,
+            timeout=10.0,
+            max_num_retry=0,
+            logger=logger,
+            debug_dump_path=os.path.join(work_dir, "squeue.stdout"),
+        )
+        for job in jobs:
+            if job["state"] == "RUNNING":
+                num["running"] += 1
+            elif job["state"] == "PENDING":
+                num["pending"] += 1
+            else:
+                num["strange"] += 1
+        out = "running: {: 6d}, pending: {: 6d}, strange: {: 6d}".format(
+            num["running"], num["pending"], num["strange"]
+        )
+    except RuntimeError as bad:
+        out = "running: {:>6s}, pending: {:>6s}, strange: {:>6s}".format(
+            "?", "?", "?"
+        )
+    return out
