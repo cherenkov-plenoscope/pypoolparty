@@ -98,6 +98,9 @@ class Pool:
 
         tasks = iterable  # to be consistent with multiprocessing's pool.map.
 
+        if len(tasks) == 0:
+            return []
+
         session_id = utils.session_id_from_time_now()
         if self.work_dir is None:
             work_dir = os.path.abspath(
