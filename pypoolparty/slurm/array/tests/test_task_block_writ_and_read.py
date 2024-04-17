@@ -4,22 +4,12 @@ import glob
 import os
 
 
-def test_zero_tasks():
-    with tempfile.TemporaryDirectory() as tmp:
-        pypoolparty.slurm.array.mapping.write_tasks_to_work_dir(
-            work_dir=tmp, tasks=[]
-        )
-        matches = glob.glob(os.path.join(tmp, "*.tar"))
-        assert len(matches) == 0
-
-
 def test_one_big_task():
     tasks = [2000 * "0"]
     with tempfile.TemporaryDirectory() as tmp:
         pypoolparty.slurm.array.mapping.write_tasks_to_work_dir(
             work_dir=tmp,
             tasks=tasks,
-            block_max_filesize=1000,
         )
         task_0 = pypoolparty.slurm.array.mapping.read_task_from_work_dir(
             work_dir=tmp,
@@ -34,11 +24,7 @@ def test_many_big_tasks():
         pypoolparty.slurm.array.mapping.write_tasks_to_work_dir(
             work_dir=tmp,
             tasks=tasks,
-            block_max_filesize=1000,
         )
-
-        matches = glob.glob(os.path.join(tmp, "*.tar"))
-        assert len(matches) == 10
 
         for task_id in range(len(tasks)):
             task = pypoolparty.slurm.array.mapping.read_task_from_work_dir(
@@ -55,9 +41,6 @@ def test_many_small_tasks():
             work_dir=tmp,
             tasks=tasks,
         )
-
-        matches = glob.glob(os.path.join(tmp, "*.tar"))
-        assert len(matches) == 1
 
         for task_id in range(len(tasks)):
             task = pypoolparty.slurm.array.mapping.read_task_from_work_dir(

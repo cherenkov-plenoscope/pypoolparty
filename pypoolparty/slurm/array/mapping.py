@@ -1,91 +1,21 @@
 import os
-import sequential_tar
+import zipfile
 import pickle
-import glob
-import re
 
 
 def read_task_from_work_dir(work_dir, task_id):
-    task_block_path = _find_task_block_in_work_dir(
-        work_dir=work_dir, task_id=task_id
-    )
-
-    with sequential_tar.open(name=task_block_path, mode="r") as tf:
-        for item in tf:
-            item_task_id = int(re.findall(r"\d+", item.name)[0])
-            if item_task_id == task_id:
-                task_pkl = item.read(mode="rb")
-                task = pickle.loads(task_pkl)
-                return task
+    tasks_path = os.path.join(work_dir, "tasks.zip")
+    task_filename = "{:d}.pickle".format(task_id)
+    with zipfile.ZipFile(file=tasks_path, mode="r") as zin:
+        with zin.open(task_filename, "r") as f:
+            task = pickle.loads(f.read())
+    return task
 
 
-def _find_task_block_in_work_dir(work_dir, task_id):
-    paths = glob.glob(
-        os.path.join(work_dir, _task_block_filename_wildcard_glob())
-    )
-    for path in paths:
-        basename = os.path.basename(path)
-        start_task_id_str, stop_task_id_str = re.findall(r"\d+", basename)
-        start_task_id = int(start_task_id_str)
-        stop_task_id = int(stop_task_id_str)
-        if start_task_id <= task_id <= stop_task_id:
-            return path
-    return None
-
-
-def write_tasks_to_work_dir(
-    work_dir,
-    tasks,
-    block_max_filesize=2**24,
-):
-    tf_tmp_path = os.path.join(work_dir, "tasks.tar.part")
-    tf = sequential_tar.open(name=tf_tmp_path, mode="w")
-    tf_filesize = 0
-    tf_task_id_start = 0
-
-    for task_id in range(len(tasks)):
-        tf_filesize += tf.write(
-            name="{:d}.pickle".format(task_id),
-            payload=pickle.dumps(tasks[task_id]),
-            mode="wb",
-        )
-
-        if tf_filesize > block_max_filesize:
-            tf.close()
-            tf_final_path = os.path.join(
-                work_dir,
-                _task_block_filename_wildcard().format(
-                    start_task_id=tf_task_id_start,
-                    stop_task_id=task_id,
-                ),
-            )
-            os.rename(tf_tmp_path, tf_final_path)
-
-            tf = sequential_tar.open(name=tf_tmp_path, mode="w")
-            tf_filesize = 0
-            tf_task_id_start = task_id + 1
-
-    if tf_filesize == 0:
-        tf.close()
-        os.remove(tf_tmp_path)
-    else:
-        tf.close()
-        tf_final_path = os.path.join(
-            work_dir,
-            _task_block_filename_wildcard().format(
-                start_task_id=tf_task_id_start,
-                stop_task_id=task_id,
-            ),
-        )
-        os.rename(tf_tmp_path, tf_final_path)
-
-
-def _task_block_filename_wildcard_glob():
-    s = _task_block_filename_wildcard()
-    s = s.replace("{start_task_id:d}", "*")
-    s = s.replace("{stop_task_id:d}", "*")
-    return s
-
-
-def _task_block_filename_wildcard():
-    return "tasks_{start_task_id:d}_to_{stop_task_id:d}.tar"
+def write_tasks_to_work_dir(work_dir, tasks):
+    tasks_path = os.path.join(work_dir, "tasks.zip")
+    with zipfile.ZipFile(file=tasks_path + ".part", mode="w") as zout:
+        for task_id in range(len(tasks)):
+            with zout.open(name="{:d}.pickle".format(task_id), mode="w") as f:
+                f.write(pickle.dumps(tasks[task_id]))
+    os.rename(tasks_path + ".part", tasks_path)
