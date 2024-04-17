@@ -101,7 +101,7 @@ def add_doc(value):
 
 
 def raise_if_too_often(numtry, max_num_retry, logger):
-    if numtry >= max_num_retry:
+    if numtry > max_num_retry:
         msg = "Aborting. Too many retries."
         logger.critical(msg)
         raise RuntimeError(msg)
