@@ -15,7 +15,7 @@ class Reducer:
         self.zip_results = zz.ZipFile(self.results_path + ".part", "w")
 
         self.stdout_path = os.path.join(work_dir, "tasks.stdout.zip")
-        self.zip_stdout = zz.ZipFile(self.stdout_path + ".path", "w")
+        self.zip_stdout = zz.ZipFile(self.stdout_path + ".part", "w")
 
         self.stderr_path = os.path.join(work_dir, "tasks.stderr.zip")
         self.zip_stderr = zz.ZipFile(self.stderr_path + ".part", "w")
