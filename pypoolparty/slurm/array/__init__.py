@@ -161,7 +161,7 @@ class Pool:
         while True:
             reducer.reduce()
 
-            poll_msg = "tasks: {: 6d} / {:d}, ".format(
+            poll_msg = "complete: {: 6d} of {:d}, ".format(
                 len(reducer.tasks_returned), len(tasks)
             )
             poll_msg += try_once_to_query_number_of_jobs_in_state(
@@ -238,7 +238,7 @@ def try_once_to_query_number_of_jobs_in_state(
     try:
         jobs = calling.squeue_array(
             jobname=jobname,
-            squeue_path=self.squeue_path,
+            squeue_path=squeue_path,
             timeout=10.0,
             max_num_retry=0,
             logger=logger,

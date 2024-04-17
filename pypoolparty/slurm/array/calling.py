@@ -2,6 +2,7 @@ from ... import utils
 from ..call import _parse_stdout_format_all
 
 import subprocess
+import tempfile
 import os
 import pwd
 
