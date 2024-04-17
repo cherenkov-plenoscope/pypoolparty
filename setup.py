@@ -37,7 +37,6 @@ setuptools.setup(
     },
     install_requires=[
         "qstat>=0.0.5",
-        "sequential_tar>=0.0.4",
         "json_line_logger",
         "rename_after_writing",
     ],
