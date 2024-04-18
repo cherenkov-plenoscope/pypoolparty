@@ -393,6 +393,7 @@ def poll_init(len_tasks):
     p = {}
     p["len_tasks"] = len_tasks
     p["returned"] = -1
+    p["running"] = -1
     p["pending"] = -1
     p["error"] = -1
     p["exceptions"] = -1
@@ -411,6 +412,7 @@ def poll_is_eual(a, b):
 def poll_set(len_tasks, reducer, jobs, num_resubmissions_by_array_task_id):
     p = poll_init(len_tasks=len_tasks)
     p["returned"] = len(reducer.tasks_returned)
+    p["running"] = len(jobs["running"])
     p["pending"] = len(jobs["pending"])
     p["error"] = len(jobs["error"])
     p["exceptions"] = len(reducer.tasks_exceptions)
