@@ -26,6 +26,7 @@ class Pool:
         work_dir=None,
         keep_work_dir=False,
         verbose=False,
+        slurm_call_timeout=60.0,
         sbatch_path="sbatch",
         squeue_path="squeue",
         scancel_path="scancel",
@@ -48,6 +49,8 @@ class Pool:
             When True, the working directory will not be removed.
         verbose : bool
             If true, the pool will print the state of its jobs to stdout.
+        slurm_call_timeout : float
+            Timeout for calling sbatch, squeue, and scancel
 
         Returns
         -------
@@ -67,6 +70,9 @@ class Pool:
         self.num_simultaneously_running_tasks = (
             num_simultaneously_running_tasks
         )
+        self.slurm_call_timeout = float(slurm_call_timeout)
+        assert self.slurm_call_timeout >= 0.0
+
         self.verbose = bool(verbose)
 
         self.sbatch_path = sbatch_path
@@ -106,7 +112,6 @@ class Pool:
 
         tasks = iterable  # to be consistent with multiprocessing's pool.map.
 
-        one_minute = 60.0
         if len(tasks) == 0:
             return []
 
@@ -159,6 +164,7 @@ class Pool:
             array_num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
             logger=logger,
             sbatch_path=self.sbatch_path,
+            timeout=self.slurm_call_timeout,
         )
         logger.debug("Calling sbatch --array: done.")
 
@@ -175,7 +181,7 @@ class Pool:
                 squeue_path=self.squeue_path,
                 jobname=jobname,
                 array=True,
-                timeout=one_minute,
+                timeout=self.slurm_call_timeout,
                 logger=logger,
                 debug_dump_path=os.path.join(work_dir, "squeue.stdout"),
             )
@@ -207,7 +213,7 @@ class Pool:
                     calling.scancel(
                         scancel_path=self.scancel_path,
                         jobid=job["jobid"],
-                        timeout=one_minute,
+                        timeout=self.slurm_call_timeout,
                         logger=logger,
                     )
                     task_ids_to_be_resubmitted.append(
@@ -225,6 +231,7 @@ class Pool:
                     array_num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
                     logger=logger,
                     sbatch_path=self.sbatch_path,
+                    timeout=self.slurm_call_timeout,
                 )
                 logger.debug("Calling sbatch --array: done.")
 
