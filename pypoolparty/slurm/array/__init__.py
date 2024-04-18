@@ -5,8 +5,8 @@ from .. import calling
 from ... import utils
 from .. import organizing_jobs
 
-import subprocess
 import json_line_logger
+import rename_after_writing
 import os
 import time
 import shutil
