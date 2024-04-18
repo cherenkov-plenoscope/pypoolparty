@@ -356,6 +356,8 @@ class Pool:
         with rename_after_writing.open(num_path, "wt") as jf:
             jf.write(json.dumps(num_resubmissions_by_array_task_id))
 
+    return num_resubmissions_by_array_task_id, jobs
+
 
 def task_shall_be_resubmitted(
     array_task_id,
