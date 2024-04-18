@@ -1,9 +1,8 @@
 from . import making_script
 from . import mapping
 from . import reducing
-from . import calling
+from .. import calling
 from ... import utils
-from .. import calling as slurm_calling
 from .. import organizing_jobs
 
 import subprocess
@@ -141,17 +140,23 @@ class Pool:
         utils.make_path_executable(path=script_path)
         logger.debug("Making script: done.")
 
+        array_task_stdout_path = os.path.join(work_dir, "%a.stdout")
+        array_task_stderr_path = os.path.join(work_dir, "%a.stderr")
+
         logger.debug("Mapping {:d} tasks...".format(len(tasks)))
         mapping.write_tasks_to_work_dir(work_dir=work_dir, tasks=tasks)
         logger.debug("Mapping {:d} tasks: done.".format(len(tasks)))
 
         logger.debug("Calling sbatch --array...")
-        calling.sbatch_array(
-            work_dir=work_dir,
+        calling.sbatch(
+            script_path=script_path,
+            stdout_path=array_task_stdout_path,
+            stderr_path=array_task_stderr_path,
             jobname=jobname,
-            start_task_id=0,
-            stop_task_id=len(iterable) - 1,
-            num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
+            array=True,
+            array_start_task_id=0,
+            array_stop_task_id=len(iterable) - 1,
+            array_num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
             logger=logger,
             sbatch_path=self.sbatch_path,
         )
@@ -166,7 +171,7 @@ class Pool:
         while True:
             reducer.reduce()
 
-            jobs = slurm_calling.squeue(
+            jobs = calling.squeue(
                 squeue_path=self.squeue_path,
                 jobname=jobname,
                 array=True,
@@ -199,7 +204,7 @@ class Pool:
             if len(jobs_error) > 0:
                 task_ids_to_be_resubmitted = []
                 for job in jobs_error:
-                    slurm_calling.scancel(
+                    calling.scancel(
                         scancel_path=self.scancel_path,
                         jobid=job["jobid"],
                         timeout=one_minute,
@@ -209,14 +214,19 @@ class Pool:
                         int(job["array_task_id"])
                     )
 
-                calling.sbatch_array(
-                    work_dir=work_dir,
+                logger.debug("Calling sbatch --array...")
+                calling.sbatch(
+                    script_path=script_path,
+                    stdout_path=array_task_stdout_path,
+                    stderr_path=array_task_stderr_path,
                     jobname=jobname,
-                    task_ids=task_ids_to_be_resubmitted,
-                    num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
+                    array=True,
+                    array_task_ids=task_ids_to_be_resubmitted,
+                    array_num_simultaneously_running_tasks=self.num_simultaneously_running_tasks,
                     logger=logger,
                     sbatch_path=self.sbatch_path,
                 )
+                logger.debug("Calling sbatch --array: done.")
 
             logger.debug(poll_msg)
             if self.verbose:

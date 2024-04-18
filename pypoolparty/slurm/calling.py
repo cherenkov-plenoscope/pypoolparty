@@ -9,10 +9,15 @@ from .. import utils
 
 def sbatch(
     script_path,
-    script_arguments,
     stdout_path,
     stderr_path,
     jobname,
+    array=False,
+    array_start_task_id=None,
+    array_stop_task_id=None,
+    array_task_ids=None,
+    array_num_simultaneously_running_tasks=None,
+    script_arguments=[],
     logger=None,
     clusters=None,
     sbatch_path="sbatch",
@@ -26,6 +31,15 @@ def sbatch(
     cmd = [sbatch_path]
     if clusters:
         cmd += ["--clusters", str.join(",", clusters)]
+
+    if array:
+        task_id_str = _make_sbatch_array_task_id_str(
+            start_task_id=array_start_task_id,
+            stop_task_id=array_stop_task_id,
+            task_ids=array_task_ids,
+            num_simultaneously_running_tasks=array_num_simultaneously_running_tasks,
+        )
+        cmd += ["--array", task_id_str]
 
     cmd += ["--job-name", jobname]
     cmd += ["--output", stdout_path]
@@ -50,6 +64,57 @@ def sbatch(
             logger.warning("Problem in sbatch()")
             logger.warning(str(bad))
             utils.random_sleep(timecooldown=timecooldown, logger=logger)
+
+
+def _make_sbatch_array_task_id_str(
+    start_task_id=None,
+    stop_task_id=None,
+    task_ids=None,
+    num_simultaneously_running_tasks=None,
+):
+    if start_task_id is not None and stop_task_id is not None:
+        assert task_ids is None
+        task_id_str = _make_sbatch_array_task_id_str_for_range_mode(
+            start_task_id=start_task_id,
+            stop_task_id=stop_task_id,
+        )
+    elif task_ids is not None:
+        assert start_task_id is None
+        assert stop_task_id is None
+        task_id_str = _make_sbatch_array_task_id_str_for_list_mode(
+            task_ids=task_ids
+        )
+    else:
+        raise AssertionError("Need either start_id-stop_id or list of ids.")
+    if num_simultaneously_running_tasks is not None:
+        task_id_str += _make_sbatch_array_task_id_str_for_num_simultaneously_running_tasks(
+            num_simultaneously_running_tasks=num_simultaneously_running_tasks
+        )
+    return task_id_str
+
+
+def _make_sbatch_array_task_id_str_for_range_mode(start_task_id, stop_task_id):
+    start_task_id = int(start_task_id)
+    stop_task_id = int(stop_task_id)
+    assert start_task_id >= 0
+    assert stop_task_id >= 0
+    assert stop_task_id >= start_task_id
+    return "{:d}-{:d}".format(start_task_id, stop_task_id)
+
+
+def _make_sbatch_array_task_id_str_for_list_mode(task_ids):
+    assert len(task_ids) > 0
+    for task_id in task_ids:
+        assert int(task_id) >= 0
+    return str.join(",", [str(task_id) for task_id in task_ids])
+
+
+def _make_sbatch_array_task_id_str_for_num_simultaneously_running_tasks(
+    num_simultaneously_running_tasks,
+):
+    num_simultaneously_running_tasks = int(num_simultaneously_running_tasks)
+    assert num_simultaneously_running_tasks > 0
+    return "%{:d}".format(num_simultaneously_running_tasks)
 
 
 def scancel(
