@@ -1,6 +1,6 @@
 from . import array
 from . import testing
-from . import call
+from . import calling
 from . import organizing_jobs
 from .. import proto_pool
 from .. import utils
@@ -69,7 +69,7 @@ def submit(
     sbatch_path="sbatch",
     clusters=None,
 ):
-    return call.sbatch(
+    return calling.sbatch(
         script_path=script_path,
         script_arguments=script_arguments,
         stdout_path=stdout_path,
@@ -88,7 +88,7 @@ def status(
     # --------------
     squeue_path,
 ):
-    all_jobs = call.squeue(
+    all_jobs = calling.squeue(
         squeue_path=squeue_path,
         logger=logger,
     )
@@ -125,7 +125,7 @@ def delete(
     # --------------
     scancel_path,
 ):
-    return call.scancel(
+    return calling.scancel(
         jobname=job["name"],
         scancel_path=scancel_path,
         logger=logger,

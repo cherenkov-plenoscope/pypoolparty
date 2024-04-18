@@ -3,7 +3,7 @@ from . import mapping
 from . import reducing
 from . import calling
 from ... import utils
-from .. import call as slurm_calling
+from .. import calling as slurm_calling
 from .. import organizing_jobs
 
 import subprocess

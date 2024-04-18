@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import argparse
 import json
 import datetime
 import subprocess
@@ -41,9 +42,28 @@ def state_to_table(state):
 # Every time this is called, it runs one job.
 MAX_NUM_RUNNING = 10
 
-assert len(sys.argv) == 3
-assert sys.argv[1] == "--format"
-assert sys.argv[2] == "%all"
+parser = argparse.ArgumentParser(
+    prog="dummy-squeue",
+    description="A dummy of slurm's squeue to test pypoolparty.",
+)
+parser.add_argument(
+    "--me",
+    action="store_true",
+    required=False,
+)
+parser.add_argument(
+    "--array",
+    action="store_true",
+    required=False,
+)
+parser.add_argument(
+    "--format", metavar="FORMAT", type=str, required=False, default="%all"
+)
+parser.add_argument(
+    "--name", metavar="JOB_NAME", type=str, required=False, default=""
+)
+args = parser.parse_args()
+
 
 with open(qpaths["queue_state"], "rt") as f:
     state = json.loads(f.read())
