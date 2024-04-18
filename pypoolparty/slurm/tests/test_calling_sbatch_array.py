@@ -20,6 +20,24 @@ def test_list_mode_normal():
     assert task_id_str == "10,100,1,0"
 
 
+def test_list_mode_normal_str():
+    task_id_str = pypoolparty.slurm.calling._make_sbatch_array_task_id_str(
+        start_task_id=None,
+        stop_task_id=None,
+        task_ids=["1", "2", "3", "4"],
+        num_simultaneously_running_tasks=None,
+    )
+    assert task_id_str == "1,2,3,4"
+
+    task_id_str = pypoolparty.slurm.calling._make_sbatch_array_task_id_str(
+        start_task_id=None,
+        stop_task_id=None,
+        task_ids=["10", "100", "1", "0"],
+        num_simultaneously_running_tasks=None,
+    )
+    assert task_id_str == "10,100,1,0"
+
+
 def test_list_mode_normal_with_num_simultaneously_running():
     task_id_str = pypoolparty.slurm.calling._make_sbatch_array_task_id_str(
         start_task_id=None,
