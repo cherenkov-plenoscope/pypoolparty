@@ -1,14 +1,13 @@
 import pypoolparty
 import numpy as np
 import tempfile
+import pytest
 import os
 
 
-def test_dummys_exist():
-    qpath = pypoolparty.slurm.testing.dummy_paths()
-    assert os.path.exists(qpath["sbatch"])
-    assert os.path.exists(qpath["squeue"])
-    assert os.path.exists(qpath["scancel"])
+@pytest.fixture()
+def debug_dir(pytestconfig):
+    return pytestconfig.getoption("debug_dir")
 
 
 def test_run_with_failing_job():
@@ -34,7 +33,7 @@ def test_run_with_failing_job():
             task = np.arange(0, 100)
             tasks.append(task)
 
-        pool = pypoolparty.slurm.Pool(
+        pool = pypoolparty.slurm.array.Pool(
             polling_interval=0.1,
             work_dir=work_dir,
             keep_work_dir=True,
