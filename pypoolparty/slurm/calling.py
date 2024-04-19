@@ -4,6 +4,7 @@ import tempfile
 import random
 import os
 import time
+import re
 from .. import utils
 
 
@@ -115,6 +116,22 @@ def _make_sbatch_array_task_id_str_for_num_simultaneously_running_tasks(
     num_simultaneously_running_tasks = int(num_simultaneously_running_tasks)
     assert num_simultaneously_running_tasks > 0
     return "%{:d}".format(num_simultaneously_running_tasks)
+
+
+def _parse_sbatch_array_task_id_str(task_id_str):
+    out = {}
+    numbers = re.findall(r"\d+", task_id_str)
+    if "%" in task_id_str:
+        out["num_simultaneously_running_tasks"] = int(numbers.pop(-1))
+    if "-" in task_id_str:
+        out["mode"] = "range"
+        out["start_task_id"] = int(numbers[0])
+        out["stop_task_id"] = int(numbers[1])
+        assert len(numbers) == 2
+    elif "," in task_id_str:
+        out["mode"] = "list"
+        out["task_ids"] = [int(number) for number in numbers]
+    return out
 
 
 def scancel(

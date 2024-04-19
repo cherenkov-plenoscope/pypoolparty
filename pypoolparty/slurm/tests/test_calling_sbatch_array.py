@@ -166,3 +166,28 @@ def test_bad_combinations():
             task_ids=[1, 2, 3],
             num_simultaneously_running_tasks=10,
         )
+
+
+def test_parsing_sbatch_array_id_str_mode_range():
+    o = pypoolparty.slurm.calling._parse_sbatch_array_task_id_str("1-10")
+    assert o["mode"] == "range"
+    assert o["start_task_id"] == 1
+    assert o["stop_task_id"] == 10
+    assert "num_simultaneously_running_tasks" not in o
+
+
+def test_parsing_sbatch_array_id_str_mode_range_num_simul():
+    o = pypoolparty.slurm.calling._parse_sbatch_array_task_id_str("1-10%3")
+    assert o["mode"] == "range"
+    assert o["start_task_id"] == 1
+    assert o["stop_task_id"] == 10
+    assert o["num_simultaneously_running_tasks"] == 3
+
+
+def test_parsing_sbatch_array_id_str_mode_list():
+    o = pypoolparty.slurm.calling._parse_sbatch_array_task_id_str(
+        "1,3,4,10%12"
+    )
+    assert o["mode"] == "list"
+    assert o["num_simultaneously_running_tasks"] == 12
+    assert o["task_ids"] == [1, 3, 4, 10]
