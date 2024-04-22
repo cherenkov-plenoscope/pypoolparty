@@ -2,6 +2,12 @@ import pypoolparty
 import numpy as np
 import tempfile
 import os
+import pytest
+
+
+@pytest.fixture()
+def debug_dir(pytestconfig):
+    return pytestconfig.getoption("debug_dir")
 
 
 def test_dummys_exist():
@@ -11,7 +17,7 @@ def test_dummys_exist():
     assert os.path.exists(qpath["qdel"])
 
 
-def test_run_with_failing_job():
+def test_run_with_failing_job(debug_dir):
     """
     The dummy_qsub will run the jobs.
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
@@ -19,7 +25,9 @@ def test_run_with_failing_job():
     """
     qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
 
-    with tempfile.TemporaryDirectory(prefix="sge") as tmp_dir:
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="-sun-grid-engine"
+    ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
 
         pypoolparty.testing.dummy_init_queue_state(

@@ -10,7 +10,7 @@ def debug_dir(pytestconfig):
     return pytestconfig.getoption("debug_dir")
 
 
-def test_run_with_failing_job():
+def test_run_with_failing_job(debug_dir):
     """
     The dummy will run the jobs.
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
@@ -18,7 +18,9 @@ def test_run_with_failing_job():
     """
     qpath = pypoolparty.slurm.testing.dummy_paths()
 
-    with tempfile.TemporaryDirectory(prefix="pypoolparty-slurm") as tmp_dir:
+    with pypoolparty.testing.DebugDirectory(
+        suffix="-slurm-array", debug_dir=debug_dir
+    ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
 
         pypoolparty.testing.dummy_init_queue_state(
