@@ -33,7 +33,7 @@ def test_run_with_failing_job(debug_dir):
 
         pypoolparty.testing.dummy_init_queue_state(
             path=qpaths["queue_state"],
-            evil_jobs=[{"ichunk": 13, "num_fails": 0, "max_num_fails": 5}],
+            evil_jobs=[{"ichunk": "13", "num_fails": 0, "max_num_fails": 5}],
         )
 
         NUM_JOBS = 30

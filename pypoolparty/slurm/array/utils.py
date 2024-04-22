@@ -10,8 +10,8 @@ def replace_array_task_id_format_with_integer_format(
 
 
 def split_job_id_and_array_task_id(job_id_str):
-    job_id_str.split("_")
-    return (job_id_str[0], job_id_str[1])
+    tokens = job_id_str.split("_")
+    return (tokens[0], tokens[1])
 
 
 def join_job_id_and_array_task_id(job_id, array_task_id):

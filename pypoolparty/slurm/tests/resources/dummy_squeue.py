@@ -32,6 +32,10 @@ args = parser.parse_args()
 queue_state_path = None  #  <- REQUIRED
 
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
 def job_head():
     return str.split(job_head_to_line(), "|")
 
@@ -85,6 +89,7 @@ for evil in state["evil_jobs"]:
     evil_ids_num_fails[evil_id] = evil["num_fails"]
     evil_ids_max_num_fails[evil_id] = evil["max_num_fails"]
 
+eprint("evil_ids_num_fails", evil_ids_num_fails)
 
 if len(state["running"]) >= MAX_NUM_RUNNING:
     run_job = state["running"].pop(0)
@@ -105,6 +110,9 @@ elif len(state["pending"]) > 0:
         evil_id = pypoolparty.pooling.make_ichunk_from_jobname(
             jobname=job["NAME"]
         )
+
+    eprint("job", job)
+    eprint("evil_id", evil_id)
 
     if evil_id in evil_ids_num_fails:
         if evil_ids_num_fails[evil_id] < evil_ids_max_num_fails[evil_id]:
