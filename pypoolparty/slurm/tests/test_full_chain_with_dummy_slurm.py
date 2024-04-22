@@ -23,16 +23,19 @@ def test_run_with_failing_job(debug_dir):
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
     This tests if pool.map can recover this error using 10 trials.
     """
-    qpath = pypoolparty.slurm.testing.dummy_paths()
-
     with pypoolparty.testing.DebugDirectory(
         suffix="-slurm", debug_dir=debug_dir
     ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.slurm.testing.dummy_init(path=dummy_dir)
 
         pypoolparty.testing.dummy_init_queue_state(
-            path=qpath["queue_state"],
-            evil_jobs=[{"ichunk": 13, "num_fails": 0, "max_num_fails": 5}],
+            path=qpaths["queue_state"],
+            evil_jobs=[
+                {"array_task_id": 13, "num_fails": 0, "max_num_fails": 5}
+            ],
         )
 
         NUM_JOBS = 30
@@ -47,9 +50,9 @@ def test_run_with_failing_job(debug_dir):
             work_dir=work_dir,
             keep_work_dir=True,
             max_num_resubmissions=10,
-            sbatch_path=qpath["sbatch"],
-            squeue_path=qpath["squeue"],
-            scancel_path=qpath["scancel"],
+            sbatch_path=qpaths["sbatch"],
+            squeue_path=qpaths["squeue"],
+            scancel_path=qpaths["scancel"],
             verbose=True,
         )
 

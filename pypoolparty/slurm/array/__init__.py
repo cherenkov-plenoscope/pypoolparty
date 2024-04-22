@@ -1,8 +1,9 @@
 from . import making_script
 from . import mapping
 from . import reducing
+from . import utils
 from .. import calling
-from ... import utils
+from ... import utils as general_utils
 from .. import organizing_jobs
 
 import json_line_logger
@@ -65,7 +66,7 @@ class Pool:
         """
 
         if python_path is None:
-            self.python_path = utils.default_python_path()
+            self.python_path = general_utils.default_python_path()
         else:
             self.python_path = python_path
 
@@ -90,7 +91,7 @@ class Pool:
         return self.__class__.__name__ + "()"
 
     def print(self, msg):
-        print("[pypoolparty]", utils.time_now_iso8601(), msg)
+        print("[pypoolparty]", general_utils.time_now_iso8601(), msg)
 
     def map(self, func, iterable):
         """
@@ -128,7 +129,7 @@ class Pool:
 
         # work_dir
         # --------
-        jobname = utils.session_id_from_time_now()
+        jobname = general_utils.session_id_from_time_now()
         if self.work_dir is None:
             work_dir = os.path.abspath(
                 opj(".", ".pypoolparty_slurm_array_" + jobname)
@@ -157,10 +158,10 @@ class Pool:
             shebang="#!{:s}".format(self.python_path),
             work_dir=work_dir,
         )
-        utils.write_text(
+        general_utils.write_text(
             path=opj(work_dir, "script.py"), content=script_content
         )
-        utils.make_path_executable(path=opj(work_dir, "script.py"))
+        general_utils.make_path_executable(path=opj(work_dir, "script.py"))
         logger.debug("Making script: done.")
 
         # writing the tasks into the work_dir
@@ -277,7 +278,7 @@ class Pool:
         # shutting down logger
         # --------------------
         logger.debug("Shuting down logger.")
-        utils.shutdown_logger(logger=logger)
+        general_utils.shutdown_logger(logger=logger)
         del logger
 
         if remove_this_work_dir:

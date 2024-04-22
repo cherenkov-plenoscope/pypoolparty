@@ -5,10 +5,7 @@ import json
 import datetime
 import pypoolparty
 
-parser = argparse.ArgumentParser(
-    prog="dummy-scancel",
-    description="A dummy of slurm's scancel to test pypoolparty.",
-)
+parser = argparse.ArgumentParser(description="dummy slurm scancel")
 parser.add_argument(
     "jobid",
     action="JOBID",
@@ -20,6 +17,8 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+queue_state_path = None  #  <- REQUIRED
+
 if args.jobid and not args.name:
     match_key = "JOBID"
     match = args.jobid
@@ -29,8 +28,7 @@ elif args.name and not agrs.jobid:
 else:
     raise AssertionError("Either jobid or name. But not both.")
 
-qpaths = pypoolparty.slurm.testing.dummy_paths()
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     old_state = json.loads(f.read())
 
 found = False
@@ -52,7 +50,7 @@ for job in old_state["pending"]:
     else:
         state["pending"].append(job)
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 if found == True:

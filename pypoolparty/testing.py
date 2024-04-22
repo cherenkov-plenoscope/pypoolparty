@@ -11,12 +11,19 @@ def dummy_init_queue_state(path, evil_jobs=[]):
 
 
 def dummy_run_job(job):
+    if "_additional_environment" in job:
+        special_env = os.environ.copy()
+        special_env.update(job["_additional_environment"])
+    else:
+        special_env = None
+
     with open(job["_opath"], "wt") as o, open(job["_epath"], "wt") as e:
-        subprocess.call(
-            [job["_python_path"], job["_script_arg_0"], job["_script_arg_1"]],
-            stdout=o,
-            stderr=e,
-        )
+        cmd = [job["_python_path"]]
+        if "_script_arg_0" in job:
+            cmd += [job["_script_arg_0"]]
+        if "_script_arg_1" in job:
+            cmd += [job["_script_arg_1"]]
+        subprocess.call(cmd, stdout=o, stderr=e, env=special_env)
 
 
 def read_shebang_path(path):

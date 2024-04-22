@@ -1,12 +1,35 @@
 #!/usr/bin/env python3
 import sys
 import argparse
+import re
 import json
 import datetime
 import subprocess
 import pypoolparty
 
-qpaths = pypoolparty.slurm.testing.dummy_paths()
+# Every time this is called, it runs one job.
+parser = argparse.ArgumentParser(
+    description="dummy slurm squeue",
+)
+parser.add_argument(
+    "--me",
+    action="store_true",
+    required=False,
+)
+parser.add_argument(
+    "--array",
+    action="store_true",
+    required=False,
+)
+parser.add_argument(
+    "--format", metavar="FORMAT", type=str, required=False, default="%all"
+)
+parser.add_argument(
+    "--name", metavar="JOB_NAME", type=str, required=False, default=""
+)
+args = parser.parse_args()
+
+queue_state_path = None  #  <- REQUIRED
 
 
 def job_head():
@@ -37,42 +60,30 @@ def state_to_table(state):
     return str.join("\n", lines)
 
 
-# dummy squeue
-# ============
-# Every time this is called, it runs one job.
 MAX_NUM_RUNNING = 10
 
-parser = argparse.ArgumentParser(
-    prog="dummy-squeue",
-    description="A dummy of slurm's squeue to test pypoolparty.",
-)
-parser.add_argument(
-    "--me",
-    action="store_true",
-    required=False,
-)
-parser.add_argument(
-    "--array",
-    action="store_true",
-    required=False,
-)
-parser.add_argument(
-    "--format", metavar="FORMAT", type=str, required=False, default="%all"
-)
-parser.add_argument(
-    "--name", metavar="JOB_NAME", type=str, required=False, default=""
-)
-args = parser.parse_args()
-
-
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
-evil_ichunks_num_fails = {}
-evil_ichunks_max_num_fails = {}
+evil_jobids_num_fails = {}
+evil_jobids_max_num_fails = {}
 for evil in state["evil_jobs"]:
-    evil_ichunks_num_fails[evil["ichunk"]] = evil["num_fails"]
-    evil_ichunks_max_num_fails[evil["ichunk"]] = evil["max_num_fails"]
+    if "array_task_id" in evil:
+        evil_id = evil["array_task_id"]
+    elif "ichunk" in evil:
+        assert not args.array, (
+            "Expected evil jobs to identify using 'array_task_id'"
+            "in case of squeue --array is called."
+        )
+        evil_id = evil["ichunk"]
+    else:
+        raise ValueError(
+            "Expected evil job to identify itself with either "
+            "'ichunk' or 'array_task_id'."
+        )
+
+    evil_jobids_num_fails[evil_id] = evil["num_fails"]
+    evil_jobids_max_num_fails[evil_id] = evil["max_num_fails"]
 
 
 if len(state["running"]) >= MAX_NUM_RUNNING:
@@ -80,12 +91,26 @@ if len(state["running"]) >= MAX_NUM_RUNNING:
     pypoolparty.testing.dummy_run_job(run_job)
 elif len(state["pending"]) > 0:
     job = state["pending"].pop(0)
-    ichunk = pypoolparty.pooling.make_ichunk_from_jobname(jobname=job["NAME"])
-    if ichunk in evil_ichunks_num_fails:
-        if evil_ichunks_num_fails[ichunk] < evil_ichunks_max_num_fails[ichunk]:
+
+    # identifu job
+    # ------------
+    if args.array:
+        (
+            _,
+            evil_id,
+        ) = pypoolparty.slurm.array.utils.split_job_id_and_array_task_id(
+            job["JOBID"]
+        )
+    else:
+        evil_id = pypoolparty.pooling.make_ichunk_from_jobname(
+            jobname=job["NAME"]
+        )
+
+    if evil_id in evil_jobids_num_fails:
+        if evil_jobids_num_fails[evil_id] < evil_jobids_max_num_fails[evil_id]:
             job["STATE"] = "ERROR"
             state["pending"].append(job)
-            evil_ichunks_num_fails[ichunk] += 1
+            evil_jobids_num_fails[evil_id] += 1
         else:
             job["STATE"] = "RUNNING"
             state["running"].append(job)
@@ -98,18 +123,20 @@ elif len(state["running"]) > 0:
 
 
 evil_jobs = []
-for ichunk in evil_ichunks_num_fails:
-    evil_jobs.append(
-        {
-            "ichunk": ichunk,
-            "num_fails": evil_ichunks_num_fails[ichunk],
-            "max_num_fails": evil_ichunks_max_num_fails[ichunk],
-        }
-    )
+for evil_id in evil_jobids_num_fails:
+    evil_job = {}
+    evil_job["num_fails"] = evil_jobids_num_fails[evil_id]
+    evil_job["max_num_fails"] = evil_jobids_max_num_fails[evil_id]
+    if args.array:
+        evil_job["array_task_id"] = evil_id
+    else:
+        evil_job["ichunk"] = evil_id
+
+    evil_jobs.append(evil_job)
 state["evil_jobs"] = evil_jobs
 
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 out_table = state_to_table(state)

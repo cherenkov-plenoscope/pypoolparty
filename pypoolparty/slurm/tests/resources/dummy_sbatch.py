@@ -5,10 +5,6 @@ import datetime
 import sys
 import pypoolparty
 
-qpaths = pypoolparty.slurm.testing.dummy_paths()
-
-# dummy sbatch
-# ============
 parser = argparse.ArgumentParser(description="dummy slurm sbatch")
 parser.add_argument("--array", type=str, help="array options")
 parser.add_argument("--output", type=str, help="stdout path")
@@ -17,8 +13,9 @@ parser.add_argument("--job-name", type=str, help="jobname")
 parser.add_argument("script_args", nargs="*", default=None)
 args = parser.parse_args()
 
+queue_state_path = None  #  <- REQUIRED
 
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
 now = datetime.datetime.now()
@@ -30,17 +27,16 @@ python_path = pypoolparty.testing.read_shebang_path(
 )
 
 
-def make_job(jobid, python_path, args):
-    job = {
+def job_init_default(python_path):
+    return {
         "STATE": "PENDING",
-        "JOBID": jobid,
-        "NAME": args.job_name,
         "REASON": "foobar",
         "PRIORITY": "0.999",
-        "_opath": args.output,
-        "_epath": args.error,
         "_python_path": python_path,
     }
+
+
+def job_update_script_args(job, args):
     for ii, script_arg in enumerate(args.script_args):
         job["_script_arg_{:d}".format(ii)] = script_arg
     return job
@@ -51,29 +47,54 @@ if args.array is not None:
         task_id_str=args.array
     )
     if array["mode"] == "range":
-        task_ids = np.arrange(
-            array["start_task_id"],
-            array["stop_task_id"],
-        )
+        array_task_ids = [
+            ttt
+            for ttt in range(array["start_task_id"], array["stop_task_id"] + 1)
+        ]
     elif array["mode"] == "list":
-        task_ids = array["task_ids"]
+        array_task_ids = array["task_ids"]
     else:
         raise ValueError("bad mode in task_id_str.")
 
-    for task_id in task_ids:
-        job = make_job(
-            jobid="{:s}_{:d}".format(jobid, task_id),
-            python_path=python_path,
-            args=args,
+    for array_task_id in array_task_ids:
+        job = job_init_default(python_path=python_path)
+        job[
+            "JOBID"
+        ] = pypoolparty.slurm.array.utils.join_job_id_and_array_task_id(
+            job_id=jobid, array_task_id=array_task_id
         )
+        job["NAME"] = args.job_name
+        job[
+            "_opath"
+        ] = pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
+            fmt=args.output
+        ).format(
+            array_task_id
+        )
+        job[
+            "_epath"
+        ] = pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
+            fmt=args.error
+        ).format(
+            array_task_id
+        )
+        job["_additional_environment"] = {
+            "SLURM_ARRAY_TASK_ID": str(array_task_id)
+        }
+        job_update_script_args(job=job, args=args)
         state["pending"].append(job)
 
 else:
     assert len(args.script_args) == 2
-    job = make_job(jobid=jobid, python_path=python_path, args=args)
+    job = job_init_default(python_path=python_path)
+    job["JOBID"] = jobid
+    job["NAME"] = args.job_name
+    job["_opath"] = args.output
+    job["_epath"] = args.error
+    job_update_script_args(job=job, args=args)
     state["pending"].append(job)
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 sys.exit(0)
