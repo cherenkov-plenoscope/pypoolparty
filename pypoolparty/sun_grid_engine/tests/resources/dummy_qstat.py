@@ -5,7 +5,7 @@ import datetime
 import subprocess
 import pypoolparty
 
-qpaths = pypoolparty.sun_grid_engine.testing.dummy_paths()
+queue_state_path = None  #  <- REQUIRED
 
 
 def job_to_xml(job):
@@ -39,7 +39,7 @@ def state_to_xml(state):
 
     out_xml += "    <job_info>\n"
     for job in state["jobs"]:
-        if job["@state"] == "pending":
+        if job["@state"] != "running":
             out_xml += indent_text(job_to_xml(job), indent=8)
     out_xml += "    </job_info>\n"
 
@@ -63,7 +63,7 @@ MAX_NUM_RUNNING = 10
 assert len(sys.argv) == 2
 assert sys.argv[1] == "-xml"
 
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
 evil_ichunks_num_fails = {}
@@ -98,7 +98,7 @@ elif count_jobs(state["jobs"], "pending") > 0:
     )
     if ichunk in evil_ichunks_num_fails:
         if evil_ichunks_num_fails[ichunk] < evil_ichunks_max_num_fails[ichunk]:
-            job["@state"] = "?"
+            job["@state"] = "pending"
             job["state"] = "Eqw"
             state["jobs"].append(job)
             evil_ichunks_num_fails[ichunk] += 1
@@ -127,7 +127,7 @@ for ichunk in evil_ichunks_num_fails:
 state["evil_jobs"] = evil_jobs
 
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 out_xml = state_to_xml(state)

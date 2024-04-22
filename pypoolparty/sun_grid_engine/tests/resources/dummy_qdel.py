@@ -4,14 +4,14 @@ import json
 import datetime
 from pypoolparty import sun_grid_engine
 
-qpaths = sun_grid_engine.testing.dummy_paths()
+queue_state_path = None  #  <- REQUIRED
 
 # dummy qdel
 # ==========
 assert len(sys.argv) == 2
 JB_job_number = sys.argv[1]
 
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     old_state = json.loads(f.read())
 
 found = False
@@ -25,7 +25,7 @@ for job in old_state["jobs"]:
     else:
         state["jobs"].append(job)
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 if found == True:

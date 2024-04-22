@@ -28,11 +28,12 @@ def test_run_with_failing_job(debug_dir):
         debug_dir=debug_dir, suffix="-sun-grid-engine"
     ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
 
-        qpath = pypoolparty.sun_grid_engine.testing.dummy_paths(path=debug_dir)
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
 
         pypoolparty.testing.dummy_init_queue_state(
-            path=qpath["queue_state"],
+            path=qpaths["queue_state"],
             evil_jobs=[{"ichunk": 13, "num_fails": 0, "max_num_fails": 5}],
         )
 
@@ -48,9 +49,9 @@ def test_run_with_failing_job(debug_dir):
             work_dir=work_dir,
             keep_work_dir=True,
             max_num_resubmissions=10,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
             error_state_indicator="E",
         )
 

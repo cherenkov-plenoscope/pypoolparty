@@ -5,9 +5,6 @@ import datetime
 import sys
 from pypoolparty import sun_grid_engine
 
-qpaths = sun_grid_engine.testing.dummy_paths()
-
-
 # dummy qsub
 # ==========
 parser = argparse.ArgumentParser(description="dummy sun-grid-engine qsub")
@@ -18,12 +15,13 @@ parser.add_argument("-N", type=str, help="JB_name")
 parser.add_argument("-V", action="store_true", help="export environment")
 parser.add_argument("-S", type=str, help="path of script")
 parser.add_argument("script_args", nargs="*", default=None)
-
 args = parser.parse_args()
+
+queue_state_path = None  #  <- REQUIRED
 
 assert len(args.script_args) == 2
 
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
 now = datetime.datetime.now()
@@ -48,7 +46,7 @@ job = {
 
 state["jobs"].append(job)
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 sys.exit(0)
