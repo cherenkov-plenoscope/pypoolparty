@@ -423,15 +423,15 @@ def poll_set(len_tasks, reducer, jobs, num_resubmissions_by_array_task_id):
 
 
 def poll_make_msg(poll):
-    msg = "complete: {: 6d} of {:d}, ".format(
+    msg = "{: 6d} of {:d} complete, ".format(
         poll["returned"], poll["len_tasks"]
     )
-    msg += "running: {: 6d}, pending: {: 6d}, error: {: 6d}".format(
+    msg += "{: 6d} running, {: 6d} pending, {: 6d} error, ".format(
         poll["running"], poll["pending"], poll["error"]
     )
-    msg += ", exceptions: {: 6d}, stderr: {: 6d}".format(
+    msg += "{: 6d} exceptions, {: 6d} stderr, ".format(
         poll["exceptions"],
         poll["stderr"],
     )
-    msg += ", resubmissions: {: 6d}".format(poll["resubmissions"])
+    msg += "{: 6d} resubmissions".format(poll["resubmissions"])
     return msg

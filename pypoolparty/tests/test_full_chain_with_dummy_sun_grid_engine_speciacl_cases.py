@@ -3,6 +3,7 @@ import numpy
 import tempfile
 import os
 import subprocess
+import pytest
 
 
 @pytest.fixture()
@@ -33,11 +34,12 @@ def test_good(debug_dir):
         pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
 
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp_dir, "my_work_dir"),
+            work_dir=work_dir,
             polling_interval=1e-3,
             qsub_path=qpaths["qsub"],
             qstat_path=qpaths["qstat"],
             qdel_path=qpaths["qdel"],
+            verbose=True,
         )
         results = pool.map(func=func, iterable=tasks)
 
@@ -57,18 +59,19 @@ def test_force_dump_tmp_dir(debug_dir):
         pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
 
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp_dir, "my_work_dir"),
+            work_dir=work_dir,
             keep_work_dir=True,
             polling_interval=1e-3,
             qsub_path=qpaths["qsub"],
             qstat_path=qpaths["qstat"],
             qdel_path=qpaths["qdel"],
+            verbose=True,
         )
         results = pool.map(
             func=GOOD_FUNC,
             iterable=GOOD_TASKS,
         )
-        assert os.path.exists(os.path.join(tmp_dir, "my_work_dir"))
+        assert os.path.exists(work_dir)
 
 
 def test_BAD_FUNC_creating_stderr(debug_dir):
@@ -82,17 +85,18 @@ def test_BAD_FUNC_creating_stderr(debug_dir):
         pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
 
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp, "my_work_dir"),
+            work_dir=work_dir,
             polling_interval=1e-3,
             qsub_path=qpaths["qsub"],
             qstat_path=qpaths["qstat"],
             qdel_path=qpaths["qdel"],
+            verbose=True,
         )
         results = pool.map(func=BAD_FUNC, iterable=GOOD_TASKS)
         assert len(results) == NUM_TASKS
         for r in results:
             assert r is None
-        assert os.path.exists(os.path.join(tmp, "my_work_dir"))
+        assert os.path.exists(work_dir)
 
 
 def test_one_bad_task_creating_stderr(debug_dir):
@@ -109,13 +113,14 @@ def test_one_bad_task_creating_stderr(debug_dir):
         bad_tasks = GOOD_TASKS.copy()
         bad_tasks.append("np.sum will not work for me.")
 
-        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=work_dir,
             polling_interval=1e-3,
             qsub_path=qpaths["qsub"],
             qstat_path=qpaths["qstat"],
             qdel_path=qpaths["qdel"],
+            verbose=True,
         )
         results = pool.map(func=GOOD_FUNC, iterable=bad_tasks)
 
@@ -123,7 +128,7 @@ def test_one_bad_task_creating_stderr(debug_dir):
         for itask in range(NUM_TASKS):
             assert results[itask] == GOOD_FUNC(GOOD_TASKS[itask])
         assert results[itask + 1] is None
-        assert os.path.exists(os.path.join(tmp_dir, "my_work_dir"))
+        assert os.path.exists(work_dir)
 
 
 def test_bundling_many_tasks(debug_dir):
@@ -150,6 +155,7 @@ def test_bundling_many_tasks(debug_dir):
             qdel_path=qpaths["qdel"],
             work_dir=work_dir,
             num_chunks=7,
+            verbose=True,
         )
         results = pool.map(func=numpy.sum, iterable=tasks)
 
