@@ -32,6 +32,7 @@ def job_init_default(python_path):
         "STATE": "PENDING",
         "REASON": "foobar",
         "PRIORITY": "0.999",
+        "ARRAY_TASK_ID": "",
         "_python_path": python_path,
     }
 
@@ -64,6 +65,7 @@ if args.array is not None:
             job_id=jobid, array_task_id=array_task_id
         )
         job["NAME"] = args.job_name
+        job["ARRAY_TASK_ID"] = str(array_task_id)
         job[
             "_opath"
         ] = pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
@@ -82,7 +84,7 @@ if args.array is not None:
             "SLURM_ARRAY_TASK_ID": str(array_task_id)
         }
         job_update_script_args(job=job, args=args)
-        state["pending"].append(job)
+        state["jobs"].append(job)
 
 else:
     assert len(args.script_args) == 2
@@ -92,7 +94,7 @@ else:
     job["_opath"] = args.output
     job["_epath"] = args.error
     job_update_script_args(job=job, args=args)
-    state["pending"].append(job)
+    state["jobs"].append(job)
 
 with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))

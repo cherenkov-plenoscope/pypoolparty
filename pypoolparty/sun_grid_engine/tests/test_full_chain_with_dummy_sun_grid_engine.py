@@ -23,12 +23,13 @@ def test_run_with_failing_job(debug_dir):
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
     This tests if qmr.map can recover this error using 10 trials.
     """
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
 
     with pypoolparty.testing.DebugDirectory(
         debug_dir=debug_dir, suffix="-sun-grid-engine"
     ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
+
+        qpath = pypoolparty.sun_grid_engine.testing.dummy_paths(path=debug_dir)
 
         pypoolparty.testing.dummy_init_queue_state(
             path=qpath["queue_state"],

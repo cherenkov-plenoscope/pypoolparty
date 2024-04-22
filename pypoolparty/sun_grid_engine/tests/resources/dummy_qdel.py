@@ -16,21 +16,14 @@ with open(qpaths["queue_state"], "rt") as f:
 
 found = False
 state = {
-    "pending": [],
-    "running": [],
+    "jobs": [],
     "evil_jobs": old_state["evil_jobs"],
 }
-for job in old_state["running"]:
+for job in old_state["jobs"]:
     if job["JB_job_number"] == JB_job_number:
         found = True
     else:
-        state["running"].append(job)
-
-for job in old_state["pending"]:
-    if job["JB_job_number"] == JB_job_number:
-        found = True
-    else:
-        state["pending"].append(job)
+        state["jobs"].append(job)
 
 with open(qpaths["queue_state"], "wt") as f:
     f.write(json.dumps(state, indent=4))

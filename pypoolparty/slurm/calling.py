@@ -131,6 +131,10 @@ def _parse_sbatch_array_task_id_str(task_id_str):
     elif "," in task_id_str:
         out["mode"] = "list"
         out["task_ids"] = [int(number) for number in numbers]
+    else:
+        assert len(numbers) == 1
+        out["mode"] = "list"
+        out["task_ids"] = [int(numbers[0])]
     return out
 
 

@@ -41,7 +41,7 @@ def job_head():
 
 
 def job_head_to_line():
-    return "NAME|JOBID|STATE|REASON|PRIORITY"
+    return "NAME|JOBID|STATE|REASON|PRIORITY|ARRAY_TASK_ID"
 
 
 def job_to_line(job, delimiter="|"):
@@ -57,9 +57,7 @@ def job_to_line(job, delimiter="|"):
 def state_to_table(state):
     lines = []
     lines.append(job_head_to_line())
-    for job in state["running"]:
-        lines.append(job_to_line(job=job))
-    for job in state["pending"]:
+    for job in state["jobs"]:
         lines.append(job_to_line(job=job))
     return str.join("\n", lines)
 
@@ -89,13 +87,27 @@ for evil in state["evil_jobs"]:
     evil_ids_num_fails[evil_id] = evil["num_fails"]
     evil_ids_max_num_fails[evil_id] = evil["max_num_fails"]
 
-eprint("evil_ids_num_fails", evil_ids_num_fails)
 
-if len(state["running"]) >= MAX_NUM_RUNNING:
-    run_job = state["running"].pop(0)
+def count_jobs(jobs, state):
+    count = 0
+    for job in jobs:
+        if job["STATE"] == state:
+            count += 1
+    return count
+
+
+def find_first_job(jobs, state):
+    for i in range(len(jobs)):
+        if jobs[i]["STATE"] == state:
+            break
+    return i
+
+
+if count_jobs(jobs=state["jobs"], state="RUNNING") >= MAX_NUM_RUNNING:
+    run_job = state["jobs"].pop(find_first_job(state["jobs"], "RUNNING"))
     pypoolparty.testing.dummy_run_job(run_job)
-elif len(state["pending"]) > 0:
-    job = state["pending"].pop(0)
+elif count_jobs(jobs=state["jobs"], state="PENDING") > 0:
+    job = state["jobs"].pop(find_first_job(state["jobs"], "PENDING"))
 
     # identify evil
     # -------------
@@ -111,22 +123,20 @@ elif len(state["pending"]) > 0:
             jobname=job["NAME"]
         )
 
-    eprint("job", job)
-    eprint("evil_id", evil_id)
-
     if evil_id in evil_ids_num_fails:
         if evil_ids_num_fails[evil_id] < evil_ids_max_num_fails[evil_id]:
-            job["STATE"] = "ERROR"
-            state["pending"].append(job)
+            job["STATE"] = "PENDING"
+            job["REASON"] = "err"
+            state["jobs"].append(job)
             evil_ids_num_fails[evil_id] += 1
         else:
             job["STATE"] = "RUNNING"
-            state["running"].append(job)
+            state["jobs"].append(job)
     else:
         job["STATE"] = "RUNNING"
-        state["running"].append(job)
-elif len(state["running"]) > 0:
-    run_job = state["running"].pop(0)
+        state["jobs"].append(job)
+elif count_jobs(jobs=state["jobs"], state="RUNNING") > 0:
+    run_job = state["jobs"].pop(find_first_job(state["jobs"], "RUNNING"))
     pypoolparty.testing.dummy_run_job(run_job)
 
 

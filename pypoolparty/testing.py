@@ -6,7 +6,7 @@ from . import utils
 
 
 def dummy_init_queue_state(path, evil_jobs=[]):
-    qstate = {"running": [], "pending": [], "evil_jobs": evil_jobs}
+    qstate = {"jobs": [], "evil_jobs": evil_jobs}
     utils.write_text(path=path, content=json.dumps(qstate))
 
 

@@ -46,7 +46,7 @@ job = {
     "_script_arg_1": args.script_args[1],
 }
 
-state["pending"].append(job)
+state["jobs"].append(job)
 
 with open(qpaths["queue_state"], "wt") as f:
     f.write(json.dumps(state, indent=4))

@@ -6,12 +6,7 @@ import datetime
 import pypoolparty
 
 parser = argparse.ArgumentParser(description="dummy slurm scancel")
-parser.add_argument(
-    "jobid",
-    action="JOBID",
-    type=str,
-    required=False,
-)
+parser.add_argument("jobid", nargs="*", default=None)
 parser.add_argument(
     "--name", metavar="JOB_NAME", type=str, required=False, default=""
 )
@@ -20,8 +15,9 @@ args = parser.parse_args()
 queue_state_path = None  #  <- REQUIRED
 
 if args.jobid and not args.name:
+    assert len(args.jobid) == 1
     match_key = "JOBID"
-    match = args.jobid
+    match = args.jobid[0]
 elif args.name and not agrs.jobid:
     match_key = "NAME"
     match = args.name
@@ -33,22 +29,15 @@ with open(queue_state_path, "rt") as f:
 
 found = False
 state = {
-    "pending": [],
-    "running": [],
+    "jobs": [],
     "evil_jobs": old_state["evil_jobs"],
 }
 
-for job in old_state["running"]:
+for job in old_state["jobs"]:
     if job[match_key] == match:
         found = True
     else:
-        state["running"].append(job)
-
-for job in old_state["pending"]:
-    if job[match_key] == match:
-        found = True
-    else:
-        state["pending"].append(job)
+        state["jobs"].append(job)
 
 with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))

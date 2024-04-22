@@ -58,6 +58,16 @@ def test_list_mode_empty_list():
         )
 
 
+def test_list_mode_single_task():
+    task_id_str = pypoolparty.slurm.calling._make_sbatch_array_task_id_str(
+        start_task_id=None,
+        stop_task_id=None,
+        task_ids=["13"],
+        num_simultaneously_running_tasks=None,
+    )
+    task_id_str == "13"
+
+
 def test_list_mode_negative_task_id():
     with pytest.raises(AssertionError):
         task_id_str = pypoolparty.slurm.calling._make_sbatch_array_task_id_str(
@@ -191,3 +201,16 @@ def test_parsing_sbatch_array_id_str_mode_list():
     assert o["mode"] == "list"
     assert o["num_simultaneously_running_tasks"] == 12
     assert o["task_ids"] == [1, 3, 4, 10]
+
+
+def test_parsing_sbatch_array_id_str_mode_list_single_task_with_simul():
+    o = pypoolparty.slurm.calling._parse_sbatch_array_task_id_str("13%12")
+    assert o["mode"] == "list"
+    assert o["num_simultaneously_running_tasks"] == 12
+    assert o["task_ids"] == [13]
+
+
+def test_parsing_sbatch_array_id_str_mode_list_single_task():
+    o = pypoolparty.slurm.calling._parse_sbatch_array_task_id_str("13")
+    assert o["mode"] == "list"
+    assert o["task_ids"] == [13]
