@@ -65,8 +65,8 @@ MAX_NUM_RUNNING = 10
 with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
-evil_jobids_num_fails = {}
-evil_jobids_max_num_fails = {}
+evil_ids_num_fails = {}
+evil_ids_max_num_fails = {}
 for evil in state["evil_jobs"]:
     if "array_task_id" in evil:
         evil_id = evil["array_task_id"]
@@ -82,8 +82,8 @@ for evil in state["evil_jobs"]:
             "'ichunk' or 'array_task_id'."
         )
 
-    evil_jobids_num_fails[evil_id] = evil["num_fails"]
-    evil_jobids_max_num_fails[evil_id] = evil["max_num_fails"]
+    evil_ids_num_fails[evil_id] = evil["num_fails"]
+    evil_ids_max_num_fails[evil_id] = evil["max_num_fails"]
 
 
 if len(state["running"]) >= MAX_NUM_RUNNING:
@@ -92,8 +92,8 @@ if len(state["running"]) >= MAX_NUM_RUNNING:
 elif len(state["pending"]) > 0:
     job = state["pending"].pop(0)
 
-    # identifu job
-    # ------------
+    # identify evil
+    # -------------
     if args.array:
         (
             _,
@@ -106,11 +106,11 @@ elif len(state["pending"]) > 0:
             jobname=job["NAME"]
         )
 
-    if evil_id in evil_jobids_num_fails:
-        if evil_jobids_num_fails[evil_id] < evil_jobids_max_num_fails[evil_id]:
+    if evil_id in evil_ids_num_fails:
+        if evil_ids_num_fails[evil_id] < evil_ids_max_num_fails[evil_id]:
             job["STATE"] = "ERROR"
             state["pending"].append(job)
-            evil_jobids_num_fails[evil_id] += 1
+            evil_ids_num_fails[evil_id] += 1
         else:
             job["STATE"] = "RUNNING"
             state["running"].append(job)
@@ -123,10 +123,10 @@ elif len(state["running"]) > 0:
 
 
 evil_jobs = []
-for evil_id in evil_jobids_num_fails:
+for evil_id in evil_ids_num_fails:
     evil_job = {}
-    evil_job["num_fails"] = evil_jobids_num_fails[evil_id]
-    evil_job["max_num_fails"] = evil_jobids_max_num_fails[evil_id]
+    evil_job["num_fails"] = evil_ids_num_fails[evil_id]
+    evil_job["max_num_fails"] = evil_ids_max_num_fails[evil_id]
     if args.array:
         evil_job["array_task_id"] = evil_id
     else:
