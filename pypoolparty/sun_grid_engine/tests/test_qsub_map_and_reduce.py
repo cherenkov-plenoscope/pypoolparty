@@ -5,6 +5,11 @@ import os
 import subprocess
 
 
+@pytest.fixture()
+def debug_dir(pytestconfig):
+    return pytestconfig.getoption("debug_dir")
+
+
 NUM_TASKS = 10
 GOOD_FUNC = numpy.sum
 GOOD_TASKS = []
@@ -14,19 +19,25 @@ for i in range(NUM_TASKS):
 BAD_FUNC = os.path.join
 
 
-def test_full_chain():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
+def test_good(debug_dir):
     func = GOOD_FUNC
     tasks = GOOD_TASKS
 
-    with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="_sun-grid-engine_good"
+    ) as tmp_dir:
+        work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
+
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp, "my_work_dir"),
+            work_dir=os.path.join(tmp_dir, "my_work_dir"),
             polling_interval=1e-3,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
         )
         results = pool.map(func=func, iterable=tasks)
 
@@ -35,35 +46,47 @@ def test_full_chain():
             assert results[i] == func(tasks[i])
 
 
-def test_force_dump_tmp_dir():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
-    with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
+def test_force_dump_tmp_dir(debug_dir):
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="_sun-grid-engine_force_dump_tmp_dir"
+    ) as tmp_dir:
+        work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
+
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp, "my_work_dir"),
+            work_dir=os.path.join(tmp_dir, "my_work_dir"),
             keep_work_dir=True,
             polling_interval=1e-3,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
         )
         results = pool.map(
             func=GOOD_FUNC,
             iterable=GOOD_TASKS,
         )
-        assert os.path.exists(os.path.join(tmp, "my_work_dir"))
+        assert os.path.exists(os.path.join(tmp_dir, "my_work_dir"))
 
 
-def test_BAD_FUNC_creating_stderr():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
-    with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
+def test_BAD_FUNC_creating_stderr(debug_dir):
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="_sun-grid-engine_BAD_FUNC_creating_stderr"
+    ) as tmp_dir:
+        work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
+
         pool = pypoolparty.sun_grid_engine.Pool(
             work_dir=os.path.join(tmp, "my_work_dir"),
             polling_interval=1e-3,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
         )
         results = pool.map(func=BAD_FUNC, iterable=GOOD_TASKS)
         assert len(results) == NUM_TASKS
@@ -72,19 +95,27 @@ def test_BAD_FUNC_creating_stderr():
         assert os.path.exists(os.path.join(tmp, "my_work_dir"))
 
 
-def test_one_bad_task_creating_stderr():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
-    with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
+def test_one_bad_task_creating_stderr(debug_dir):
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir,
+        suffix="_sun-grid-engine_one_bad_task_creating_stderr",
+    ) as tmp_dir:
+        work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
+
         bad_tasks = GOOD_TASKS.copy()
         bad_tasks.append("np.sum will not work for me.")
 
         pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
         pool = pypoolparty.sun_grid_engine.Pool(
-            work_dir=os.path.join(tmp, "my_work_dir"),
+            work_dir=work_dir,
             polling_interval=1e-3,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
         )
         results = pool.map(func=GOOD_FUNC, iterable=bad_tasks)
 
@@ -92,13 +123,18 @@ def test_one_bad_task_creating_stderr():
         for itask in range(NUM_TASKS):
             assert results[itask] == GOOD_FUNC(GOOD_TASKS[itask])
         assert results[itask + 1] is None
-        assert os.path.exists(os.path.join(tmp, "my_work_dir"))
+        assert os.path.exists(os.path.join(tmp_dir, "my_work_dir"))
 
 
-def test_bundling_many_tasks():
-    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
-    with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        pypoolparty.testing.dummy_init_queue_state(path=qpath["queue_state"])
+def test_bundling_many_tasks(debug_dir):
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="_sun-grid-engine_bundling_many_tasks"
+    ) as tmp_dir:
+        work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
+        pypoolparty.testing.dummy_init_queue_state(path=qpaths["queue_state"])
 
         num_many_tasks = 120
 
@@ -109,10 +145,10 @@ def test_bundling_many_tasks():
 
         pool = pypoolparty.sun_grid_engine.Pool(
             polling_interval=1e-3,
-            qsub_path=qpath["qsub"],
-            qstat_path=qpath["qstat"],
-            qdel_path=qpath["qdel"],
-            work_dir=os.path.join(tmp, "my_work_dir"),
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
+            work_dir=work_dir,
             num_chunks=7,
         )
         results = pool.map(func=numpy.sum, iterable=tasks)

@@ -53,6 +53,7 @@ def test_run_with_failing_job(debug_dir):
             qstat_path=qpaths["qstat"],
             qdel_path=qpaths["qdel"],
             error_state_indicator="E",
+            verbose=True,
         )
 
         results = pool.map(func=np.sum, iterable=tasks)
