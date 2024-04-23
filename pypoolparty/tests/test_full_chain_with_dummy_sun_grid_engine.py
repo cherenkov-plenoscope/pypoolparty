@@ -2,28 +2,38 @@ import pypoolparty
 import numpy as np
 import tempfile
 import os
+import pytest
+
+
+@pytest.fixture()
+def debug_dir(pytestconfig):
+    return pytestconfig.getoption("debug_dir")
 
 
 def test_dummys_exist():
-    qpath = pypoolparty.slurm.testing.dummy_paths()
-    assert os.path.exists(qpath["sbatch"])
-    assert os.path.exists(qpath["squeue"])
-    assert os.path.exists(qpath["scancel"])
+    qpath = pypoolparty.sun_grid_engine.testing.dummy_paths()
+    assert os.path.exists(qpath["qsub"])
+    assert os.path.exists(qpath["qstat"])
+    assert os.path.exists(qpath["qdel"])
 
 
-def test_run_with_failing_job():
+def test_run_with_failing_job(debug_dir):
     """
-    The dummy will run the jobs.
+    The dummy_qsub will run the jobs.
     It will intentionally bring ichunk == 13 into error-state 'E' five times.
     This tests if qmr.map can recover this error using 10 trials.
     """
-    qpath = pypoolparty.slurm.testing.dummy_paths()
 
-    with tempfile.TemporaryDirectory(prefix="pypoolparty-slurm") as tmp_dir:
+    with pypoolparty.testing.DebugDirectory(
+        debug_dir=debug_dir, suffix="-sun-grid-engine"
+    ) as tmp_dir:
         work_dir = os.path.join(tmp_dir, "work_dir")
+        dummy_dir = os.path.join(tmp_dir, "dummy")
+
+        qpaths = pypoolparty.sun_grid_engine.testing.dummy_init(path=dummy_dir)
 
         pypoolparty.testing.dummy_init_queue_state(
-            path=qpath["queue_state"],
+            path=qpaths["queue_state"],
             evil_jobs=[{"ichunk": 13, "num_fails": 0, "max_num_fails": 5}],
         )
 
@@ -34,14 +44,15 @@ def test_run_with_failing_job():
             task = np.arange(0, 100)
             tasks.append(task)
 
-        pool = pypoolparty.slurm.Pool(
+        pool = pypoolparty.sun_grid_engine.Pool(
             polling_interval=0.1,
             work_dir=work_dir,
             keep_work_dir=True,
             max_num_resubmissions=10,
-            sbatch_path=qpath["sbatch"],
-            squeue_path=qpath["squeue"],
-            scancel_path=qpath["scancel"],
+            qsub_path=qpaths["qsub"],
+            qstat_path=qpaths["qstat"],
+            qdel_path=qpaths["qdel"],
+            error_state_indicator="E",
             verbose=True,
         )
 

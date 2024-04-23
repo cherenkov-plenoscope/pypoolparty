@@ -4,15 +4,21 @@ import tempfile
 import random
 import os
 import time
+import re
 from .. import utils
 
 
 def sbatch(
     script_path,
-    script_arguments,
     stdout_path,
     stderr_path,
     jobname,
+    array=False,
+    array_start_task_id=None,
+    array_stop_task_id=None,
+    array_task_ids=None,
+    array_num_simultaneously_running_tasks=None,
+    script_arguments=[],
     logger=None,
     clusters=None,
     sbatch_path="sbatch",
@@ -27,6 +33,15 @@ def sbatch(
     if clusters:
         cmd += ["--clusters", str.join(",", clusters)]
 
+    if array:
+        task_id_str = _make_sbatch_array_task_id_str(
+            start_task_id=array_start_task_id,
+            stop_task_id=array_stop_task_id,
+            task_ids=array_task_ids,
+            num_simultaneously_running_tasks=array_num_simultaneously_running_tasks,
+        )
+        cmd += ["--array", task_id_str]
+
     cmd += ["--job-name", jobname]
     cmd += ["--output", stdout_path]
     cmd += ["--error", stderr_path]
@@ -36,7 +51,7 @@ def sbatch(
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -49,11 +64,83 @@ def sbatch(
         except Exception as bad:
             logger.warning("Problem in sbatch()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
+
+
+def _make_sbatch_array_task_id_str(
+    start_task_id=None,
+    stop_task_id=None,
+    task_ids=None,
+    num_simultaneously_running_tasks=None,
+):
+    if start_task_id is not None and stop_task_id is not None:
+        assert task_ids is None
+        task_id_str = _make_sbatch_array_task_id_str_for_range_mode(
+            start_task_id=start_task_id,
+            stop_task_id=stop_task_id,
+        )
+    elif task_ids is not None:
+        assert start_task_id is None
+        assert stop_task_id is None
+        task_id_str = _make_sbatch_array_task_id_str_for_list_mode(
+            task_ids=task_ids
+        )
+    else:
+        raise AssertionError("Need either start_id-stop_id or list of ids.")
+    if num_simultaneously_running_tasks is not None:
+        task_id_str += _make_sbatch_array_task_id_str_for_num_simultaneously_running_tasks(
+            num_simultaneously_running_tasks=num_simultaneously_running_tasks
+        )
+    return task_id_str
+
+
+def _make_sbatch_array_task_id_str_for_range_mode(start_task_id, stop_task_id):
+    start_task_id = int(start_task_id)
+    stop_task_id = int(stop_task_id)
+    assert start_task_id >= 0
+    assert stop_task_id >= 0
+    assert stop_task_id >= start_task_id
+    return "{:d}-{:d}".format(start_task_id, stop_task_id)
+
+
+def _make_sbatch_array_task_id_str_for_list_mode(task_ids):
+    assert len(task_ids) > 0
+    for task_id in task_ids:
+        assert int(task_id) >= 0
+    return str.join(",", [str(task_id) for task_id in task_ids])
+
+
+def _make_sbatch_array_task_id_str_for_num_simultaneously_running_tasks(
+    num_simultaneously_running_tasks,
+):
+    num_simultaneously_running_tasks = int(num_simultaneously_running_tasks)
+    assert num_simultaneously_running_tasks > 0
+    return "%{:d}".format(num_simultaneously_running_tasks)
+
+
+def _parse_sbatch_array_task_id_str(task_id_str):
+    out = {}
+    numbers = re.findall(r"\d+", task_id_str)
+    if "%" in task_id_str:
+        out["num_simultaneously_running_tasks"] = int(numbers.pop(-1))
+    if "-" in task_id_str:
+        out["mode"] = "range"
+        out["start_task_id"] = int(numbers[0])
+        out["stop_task_id"] = int(numbers[1])
+        assert len(numbers) == 2
+    elif "," in task_id_str:
+        out["mode"] = "list"
+        out["task_ids"] = [int(number) for number in numbers]
+    else:
+        assert len(numbers) == 1
+        out["mode"] = "list"
+        out["task_ids"] = [int(numbers[0])]
+    return out
 
 
 def scancel(
-    jobname,
+    jobname=None,
+    jobid=None,
     scancel_path="scancel",
     timeout=None,
     timecooldown=1.0,
@@ -63,11 +150,15 @@ def scancel(
     if logger is None:
         logger = json_line_logger.LoggerStdout()
 
-    cmd = [scancel_path, "--name", str(jobname)]
+    cmd = [scancel_path]
+    if jobid is not None:
+        cmd += [jobid]
+    if jobname is not None:
+        cmd += ["--name", str(jobname)]
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -80,11 +171,13 @@ def scancel(
         except Exception as bad:
             logger.warning("Problem in scancel()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
 
 
 def squeue(
     squeue_path="squeue",
+    jobname=None,
+    array=False,
     timeout=None,
     timecooldown=1.0,
     max_num_retry=25,
@@ -113,7 +206,7 @@ def squeue(
 
     numtry = 0
     while True:
-        raise_if_too_often(
+        utils.raise_if_too_often(
             numtry=numtry, max_num_retry=max_num_retry, logger=logger
         )
         try:
@@ -121,6 +214,8 @@ def squeue(
             logger.debug("calling squeue, num. tries = {:d}".format(numtry))
             stdout = _squeue_format_all_stdout(
                 squeue_path=squeue_path,
+                jobname=jobname,
+                array=array,
                 timeout=timeout,
                 logger=logger,
             )
@@ -128,7 +223,7 @@ def squeue(
         except Exception as bad:
             logger.warning("problem in _squeue_format_all_stdout()")
             logger.warning(str(bad))
-            sleep(timecooldown=timecooldown, logger=logger)
+            utils.random_sleep(timecooldown=timecooldown, logger=logger)
 
     logger.debug("parsing stdout into list of dicts")
 
@@ -178,9 +273,19 @@ def _parse_stdout_format_all(stdout, delimiter="|", logger=None):
     return out
 
 
-def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
+def _squeue_format_all_stdout(
+    squeue_path="squeue", jobname=None, array=False, timeout=None, logger=None
+):
     if logger is None:
         logger = json_line_logger.LoggerStdout()
+
+    cmd = [squeue_path]
+    cmd += ["--me"]
+    cmd += ["--format", "%all"]
+    if array:
+        cmd += ["--array"]
+    if jobname is not None:
+        cmd += ["--name", jobname]
 
     with tempfile.TemporaryDirectory(prefix="slurmpypoolurm") as tmp:
         tmp_stdout_path = os.path.join(tmp, "stdout.txt")
@@ -190,10 +295,7 @@ def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
             logger.debug("timeout = {:f}s".format(float(timeout)))
 
         with open(tmp_stdout_path, "wt") as f:
-            p = subprocess.Popen(
-                [squeue_path, "--format", "%all"],
-                stdout=f,
-            )
+            p = subprocess.Popen(cmd, stdout=f)
             p.wait(timeout=timeout)
 
         with open(tmp_stdout_path, "rt") as f:
@@ -201,16 +303,3 @@ def _squeue_format_all_stdout(squeue_path="squeue", timeout=None, logger=None):
 
     logger.debug("len(stdout) = {:d}".format(len(stdout)))
     return stdout
-
-
-def sleep(timecooldown, logger):
-    delta_time = timecooldown * random.uniform(1 / 2, 3 / 2)
-    logger.warning("waiting for {:f}s".format(float(delta_time)))
-    time.sleep(delta_time)
-
-
-def raise_if_too_often(numtry, max_num_retry, logger):
-    if numtry >= max_num_retry:
-        msg = "Aborting. Too many retries."
-        logger.critical(msg)
-        raise RuntimeError(msg)

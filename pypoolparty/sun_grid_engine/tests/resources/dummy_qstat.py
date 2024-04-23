@@ -5,7 +5,7 @@ import datetime
 import subprocess
 import pypoolparty
 
-qpaths = pypoolparty.sun_grid_engine.testing.dummy_paths()
+queue_state_path = None  #  <- REQUIRED
 
 
 def job_to_xml(job):
@@ -32,13 +32,15 @@ def state_to_xml(state):
     out_xml += "<job_info>\n"
 
     out_xml += "    <queue_info>\n"
-    for job in state["running"]:
-        out_xml += indent_text(job_to_xml(job), indent=8)
+    for job in state["jobs"]:
+        if job["@state"] == "running":
+            out_xml += indent_text(job_to_xml(job), indent=8)
     out_xml += "    </queue_info>\n"
 
     out_xml += "    <job_info>\n"
-    for job in state["pending"]:
-        out_xml += indent_text(job_to_xml(job), indent=8)
+    for job in state["jobs"]:
+        if job["@state"] != "running":
+            out_xml += indent_text(job_to_xml(job), indent=8)
     out_xml += "    </job_info>\n"
 
     out_xml += "</job_info>\n"
@@ -61,7 +63,7 @@ MAX_NUM_RUNNING = 10
 assert len(sys.argv) == 2
 assert sys.argv[1] == "-xml"
 
-with open(qpaths["queue_state"], "rt") as f:
+with open(queue_state_path, "rt") as f:
     state = json.loads(f.read())
 
 evil_ichunks_num_fails = {}
@@ -71,30 +73,45 @@ for evil in state["evil_jobs"]:
     evil_ichunks_max_num_fails[evil["ichunk"]] = evil["max_num_fails"]
 
 
-if len(state["running"]) >= MAX_NUM_RUNNING:
-    run_job = state["running"].pop(0)
+def count_jobs(jobs, state):
+    count = 0
+    for job in jobs:
+        if job["@state"] == state:
+            count += 1
+    return count
+
+
+def find_first_job(jobs, state):
+    for i in range(len(jobs)):
+        if jobs[i]["@state"] == state:
+            break
+    return i
+
+
+if count_jobs(state["jobs"], "running") >= MAX_NUM_RUNNING:
+    run_job = state["jobs"].pop(find_first_job(state["jobs"], "running"))
     pypoolparty.testing.dummy_run_job(run_job)
-elif len(state["pending"]) > 0:
-    job = state["pending"].pop(0)
+elif count_jobs(state["jobs"], "pending") > 0:
+    job = state["jobs"].pop(find_first_job(state["jobs"], "pending"))
     ichunk = pypoolparty.pooling.make_ichunk_from_jobname(
         jobname=job["JB_name"]
     )
     if ichunk in evil_ichunks_num_fails:
         if evil_ichunks_num_fails[ichunk] < evil_ichunks_max_num_fails[ichunk]:
-            job["@state"] = "?"
+            job["@state"] = "pending"
             job["state"] = "Eqw"
-            state["pending"].append(job)
+            state["jobs"].append(job)
             evil_ichunks_num_fails[ichunk] += 1
         else:
             job["@state"] = "running"
             job["state"] = "r"
-            state["running"].append(job)
+            state["jobs"].append(job)
     else:
         job["@state"] = "running"
         job["state"] = "r"
-        state["running"].append(job)
-elif len(state["running"]) > 0:
-    run_job = state["running"].pop(0)
+        state["jobs"].append(job)
+elif count_jobs(state["jobs"], "running") > 0:
+    run_job = state["jobs"].pop(find_first_job(state["jobs"], "running"))
     pypoolparty.testing.dummy_run_job(run_job)
 
 
@@ -110,7 +127,7 @@ for ichunk in evil_ichunks_num_fails:
 state["evil_jobs"] = evil_jobs
 
 
-with open(qpaths["queue_state"], "wt") as f:
+with open(queue_state_path, "wt") as f:
     f.write(json.dumps(state, indent=4))
 
 out_xml = state_to_xml(state)

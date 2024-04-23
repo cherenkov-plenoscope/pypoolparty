@@ -16,7 +16,7 @@ def test_parse_squeue():
     with open(stdout_path) as f:
         o = f.read()
 
-    d = pypoolparty.slurm.call._parse_stdout_format_all(o)
+    d = pypoolparty.slurm.calling._parse_stdout_format_all(o)
 
     print(d[18])
 
