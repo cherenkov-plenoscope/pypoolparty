@@ -4,16 +4,18 @@ Python Pool Party
 |TestStatus| |PyPiStatus| |BlackStyle| |BlackPackStyle| |MITLicenseBadge|
 
 A python package for job pools (as in ``multiprocessing.Pool()``) which makes
-use of distributed compute clusters.
+use of workload managers on distributed compute clusters.
 
 The ``pypoolparty`` provides a ``Pool()`` with a ``map()`` function which aims
-to be a drop-in-replacement for ``builtins``' ``map()``, and ``multiprocessing.Pool()``'s ``map()``. The idea is to allow the user to always fall back to these builtin pools and map-functions in case a distributed compute cluster is not available.
+to be a drop-in-replacement for ``multiprocessing.Pool()``'s ``map()``.
+This way you can always fall back to the builtin pools and map-functions
+in case a distributed compute cluster is not available.
 
 This package respects the concept of 'fair share' what is commonly found
 in scientific environments, but is not common in commercial environments.
 Here, fair share means that compute resources are only requested when they
 are needed. Compute resources are not requested to just idle and wait for
-the user to submit jobs.
+jobs to be submitted.
 
 A consequence of this fair sharing is, that this package expects your jobs
 to randomly die in conflicts for resources with jobs submitted by other users,
@@ -35,13 +37,63 @@ Basic Usage
 
 .. code:: python
 
-    import pypoolparty as ppp
+    import pypoolparty
 
-    pool = ppp.slurm.Pool()
+    pool = pypoolparty.slurm.array.Pool()
     results = pool.map(sum, [[1, 2], [2, 3], [4, 5], ])
 
 
-Currently, there is ``ppp.slurm.Pool()`` and ``ppp.sun_grid_engine.Pool()``.
+For more details, see the ``Pool()'s`` docs, e.g. ``pypoolparty.slurm.array.Pool?``.
+Options to the ``Pool()s`` are defined in therir constructors e.g.
+
+
+.. code:: python
+
+    pool = pypoolparty.slurm.array.Pool(
+        num_simultaneously_running_tasks=200,
+        python_path="/path/to/python/interpreter/to/be/called/on/the/worker/nodes",
+        polling_interval=5.0,
+        work_dir="/path/to/the/pools/work_dir/where/the/map/and/reduce/happens",
+        keep_work_dir=True,  # e.g for debugging
+        verbose=True,  # Talk to me!
+        slurm_call_timeout=60.0,
+        max_num_resubmissions=3,
+    )
+
+
+Pools
+=====
+
+``pypoolparty.slurm.array.Pool()``
+----------------------------------
+Uses slurm's ``--array`` option.
+It will call ``sbatch --array``, ``squeue`` and ``scancel``.
+
+``pypoolparty.sun_grid_engine.Pool()``
+--------------------------------------
+It will call ``qsub``, ``qstat`` and ``qdel``.
+
+``pypoolparty.slurm.Pool()``
+----------------------------
+It will call ``sbatch``, ``squeue`` and ``scancel``.
+Uses the same inner workings as ``pypoolparty.sun_grid_engine.Pool()``.
+
+Testing
+=======
+The ``pypoolparty`` comes with ist own dummys for slurm and the sun grid engine.
+This allows to test the full chain without the actual workload managers to be installed.
+
+.. code:: bash
+
+    pytest -s pypoolparty
+
+
+Workload managers
+=================
+We tested:
+
+- SLURM, version 22.05.6
+- Sun Grid Engine (SGE), version 8.1.9
 
 
 Alternatives
@@ -55,15 +107,32 @@ When you do not share resources with other users, when you do not need to respec
 - ipyparallel_
 
 
-Queue Flavors
-=============
-
-- SLURM, version 22.05.6
-- Sun Grid Engine (SGE), version 8.1.9
-
-
 Inner Workings
 ==============
+The maaping and reducing takes place in a ``work_dir`` in the filesystem.
+The ``work_dir`` can be defined manually and must be reachable by all
+compute notes.
+
+``slurm.array.Pool``
+--------------------
+- Makes a ``work_dir`` where it creates a zip-file named ``tasks.zip`` in which it dumps all ``tasks`` using ``pickle``.
+
+- Starts a logger which logs into a file named ``log.jsonl`` in the ``work_dir``.
+
+- Makea a script which will execute the tasks on the compute nodes and dumps the script named ``script.py`` into the ``work_dir``. The script contains the path to the ``work_dir`` and queries the environment variable ``SLURM_ARRAY_TASK_ID`` to determine which ``task`` it shall process. It will write its result, ``stdout`` and ``stderr``, and potentially a report of raised ``exceptions`` into the ``work_dir``.
+
+- Calls ``sbatch --array``
+
+- After the initial call of ``sbatch``, we wait for the jobs to return (to write their results) or to get stuck in some error state. With a polling interval of 5s (can be adjusted), the ``work_dir`` is searched for results and ``squeue`` is searched for jobs in error states. When results are found in the ``work_dir``, they are read and appended into the four zip-files named ``tasks.results.zip``, ``tasks.stdout.zip``, ``tasks.stderr.zip``, and ``tasks.exceptions.zip``. When the individual files writen by a job got appended to the zip-files, the individual files are removed to keep the number of files low.
+
+- If the poll of ``squeue`` indicates ``tasks`` with error like flags, these specific ``tasks`` will be removed from the queue by calling ``scancel`` and then added again by calling ``sbatch --array`` until a predefined limit of resubmissions is reached.
+
+- Finally, either all ``tasks`` returned results or got finally stuck in errors and exceptions. The results are read into memory from ``work_dir/tasks_results.zip`` and returned by the ``map()`` function. If there was non zero ``stderr`` or an exception, the ``work_dir`` will not be removed after the call of ``map()``, but will stay for potential debugging.
+
+
+``sun_grid_engine.Pool`` and ``slurm.Pool``
+-------------------------------------------
+
 - ``map()`` makes a ``work_dir`` because the mapping and reducing takes place in the filesystem. You can set ``work_dir`` manually to make sure both the worker nodes and the process node can reach it.
 
 - ``map()`` serializes your ``tasks`` using ``pickle`` into separate files in ``work_dir/{ichunk:09d}.pkl``.
@@ -109,45 +178,29 @@ Wording
 - ``jobname`` or ``job["name"]`` is assigned to a queue job by our ``map()``. It is composed of our ``map()``'s session-id, and ``ichunk``. E.g. ``"q"%Y-%m-%dT%H:%M:%S"#{ichunk:09d}"``
 
 
-Testing
-=======
+Testing for developers
+======================
+The tests have an option ``--debug_dir`` which allows to make the otherwise
+temporary output and working directories to remain after the tests have run.
 
 .. code:: bash
 
-    pytest -s .
+    pytest -s --debug_dir path/to/do/debugging pypoolparty
 
 
 dummy queue
 -----------
 To test our ``map()`` we provide a dummy ``qsub``, ``qstat``, and ``qdel``
-for the sun-grid-engine.
+for the sun-grid-engine, and a dummy ``sbatch``, ``squeue``, and ``scancel``
+for slurm.
 These are individual ``python`` scripts which all act on a common state file
-in ``tests/resources/dummy_queue_state.json`` in order to fake the
-sun-grid-engine's queue.
+named ``queue_state.json`` in order to imitate the workload managers.
 
-- ``dummy_qsub.py`` only appends queue jobs to the list of pending jobs in the state-file.
+- ``qsub``/``sbatch`` only append pening jobs to the list of jobs in ``queue_state.json``.
 
-- ``dummy_qdel.py`` only removes queue jobs from the state-file.
+- ``qdel``/``scancel`` only remove jobs from the list of jobs in ``queue_state.json``.
 
-- ``dummy_qstat.py`` does move the queue jobs from the pending to the running list, and does trigger the actual processing of the jobs. Each time ``dummy_qstat.py`` is called it performs a single action on the state file. So it must be called multiple times to process all jobs. It can intentionally bring jobs into the error-state when this is set in the state-file.
-
-Before running the dummy queue, its state file must be initialized:
-
-.. code:: python
-
-    from pypoolparty import sun_grid_engine
-
-    sun_grid_engine.testing.init_queue_state(
-        path="tests/resources/dummy_queue_state.json"
-    )
-
-When testing our ``map()`` you set its arguments ``qsub_path``, ``qdel_path``,
-and ``qstat_path`` to point to the dummy queue.
-
-See ``tests/test_full_chain_with_dummy_qsub.py``.
-
-Because of the global state file, only one instance of dummy_queue must run
-at a time.
+- ``qstat``/``squeue`` changes  the state of jobs from pending to running, and triggers the actual processing of the jobs. Each time ``qstat.py`` is called it performs a single action on ``queue_state.json``. So it must be called multiple times to process all jobs. It can intentionally bring jobs into error states when this is set accordingly in the ``queue_state.json``.
 
 
 .. |TestStatus| image:: https://github.com/cherenkov-plenoscope/pypoolparty/actions/workflows/test.yml/badge.svg?branch=main
