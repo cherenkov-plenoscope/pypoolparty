@@ -111,3 +111,17 @@ def random_sleep(timecooldown, logger):
     delta_time = timecooldown * random.uniform(1 / 2, 3 / 2)
     logger.warning("waiting for {:f}s".format(float(delta_time)))
     time.sleep(delta_time)
+
+
+def dict_sum(d):
+    num = 0
+    for key in d:
+        num += d[key]
+    return num
+
+
+def dict_increment(d, key):
+    if key in d:
+        d[key] += 1
+    else:
+        d[key] = 1

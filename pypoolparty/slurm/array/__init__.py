@@ -1,6 +1,7 @@
 from . import making_script
 from . import mapping
 from . import reducing
+from . import polling
 from . import utils
 from .. import calling
 from ... import utils as general_utils
@@ -197,7 +198,7 @@ class Pool:
         logger.debug("Waiting for tasks to return...")
 
         num_resubmissions_by_array_task_id = {}
-        last_poll = poll_init(len_tasks=len(tasks))
+        last_poll = polling.init(len_tasks=len(tasks))
 
         while True:
             # Collecting/reducing task results written by the worker nodes
@@ -209,7 +210,7 @@ class Pool:
             (
                 num_resubmissions_by_array_task_id,
                 jobs,
-            ) = self.resubmit_jobs_in_error_state(
+            ) = self.resubmit_jobs_which_indicate_errors_and_might_profit_from_a_resubmission(
                 num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
                 work_dir=work_dir,
                 jobname=jobname,
@@ -218,16 +219,16 @@ class Pool:
 
             # printing/logging current polling state
             # --------------------------------------
-            poll = poll_set(
+            poll = polling.init(
                 len_tasks=len(tasks),
                 reducer=reducer,
                 jobs=jobs,
                 num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
             )
-            poll_msg = poll_make_msg(poll=poll)
+            poll_msg = polling.to_str(poll=poll)
             logger.debug(poll_msg)
             if self.verbose:
-                if not poll_is_eual(last_poll, poll):
+                if not polling.is_eual(last_poll, poll):
                     self.print(poll_msg)
 
             # Checking breakout criteria
@@ -286,7 +287,7 @@ class Pool:
 
         return task_results
 
-    def resubmit_jobs_in_error_state(
+    def resubmit_jobs_which_indicate_errors_and_might_profit_from_a_resubmission(
         self,
         num_resubmissions_by_array_task_id,
         work_dir,
@@ -323,7 +324,7 @@ class Pool:
 
             array_task_ids_to_be_resubmitted = []
             for job in jobs["error"]:
-                if task_shall_be_resubmitted(
+                if array_task_shall_be_resubmitted(
                     array_task_id=job["array_task_id"],
                     num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
                     max_num_resubmissions=self.max_num_resubmissions,
@@ -348,7 +349,7 @@ class Pool:
             logger.debug("Calling sbatch --array: done.")
 
             for job in jobs["error"]:
-                dict_increment(
+                general_utils.dict_increment(
                     num_resubmissions_by_array_task_id,
                     key=job["array_task_id"],
                 )
@@ -360,7 +361,7 @@ class Pool:
         return num_resubmissions_by_array_task_id, jobs
 
 
-def task_shall_be_resubmitted(
+def array_task_shall_be_resubmitted(
     array_task_id,
     num_resubmissions_by_array_task_id,
     max_num_resubmissions,
@@ -374,64 +375,3 @@ def task_shall_be_resubmitted(
             ):
                 resubmit = False
     return resubmit
-
-
-def dict_sum(d):
-    num = 0
-    for key in d:
-        num += d[key]
-    return num
-
-
-def dict_increment(d, key):
-    if key in d:
-        d[key] += 1
-    else:
-        d[key] = 1
-
-
-def poll_init(len_tasks):
-    p = {}
-    p["len_tasks"] = len_tasks
-    p["returned"] = -1
-    p["running"] = -1
-    p["pending"] = -1
-    p["error"] = -1
-    p["exceptions"] = -1
-    p["stderr"] = -1
-    p["resubmissions"] = -1
-    return p
-
-
-def poll_is_eual(a, b):
-    for key in a:
-        if a[key] != b[key]:
-            return False
-    return True
-
-
-def poll_set(len_tasks, reducer, jobs, num_resubmissions_by_array_task_id):
-    p = poll_init(len_tasks=len_tasks)
-    p["returned"] = len(reducer.tasks_returned)
-    p["running"] = len(jobs["running"])
-    p["pending"] = len(jobs["pending"])
-    p["error"] = len(jobs["error"])
-    p["exceptions"] = len(reducer.tasks_exceptions)
-    p["stderr"] = len(reducer.tasks_with_stderr)
-    p["resubmissions"] = dict_sum(num_resubmissions_by_array_task_id)
-    return p
-
-
-def poll_make_msg(poll):
-    msg = "{: 6d} of {:d} complete, ".format(
-        poll["returned"], poll["len_tasks"]
-    )
-    msg += "{: 6d} running, {: 6d} pending, {: 6d} error, ".format(
-        poll["running"], poll["pending"], poll["error"]
-    )
-    msg += "{: 6d} exceptions, {: 6d} stderr, ".format(
-        poll["exceptions"],
-        poll["stderr"],
-    )
-    msg += "{: 6d} resubmissions".format(poll["resubmissions"])
-    return msg
