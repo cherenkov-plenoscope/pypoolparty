@@ -1,5 +1,5 @@
 from . import testing
-from . import call
+from . import calling
 from . import organizing_jobs
 from .. import proto_pool
 from .. import utils
@@ -74,7 +74,7 @@ def submit(
     queue_name,
     script_exe_path,
 ):
-    return call.qsub(
+    return calling.qsub(
         qsub_path=qsub_path,
         queue_name=queue_name,
         script_exe_path=script_exe_path,
@@ -95,7 +95,7 @@ def status(
     qstat_path,
     error_state_indicator,
 ):
-    all_jobs_running, all_jobs_pending = call.qstat(
+    all_jobs_running, all_jobs_pending = calling.qstat(
         qstat_path=qstat_path,
         logger=logger,
     )
@@ -126,7 +126,7 @@ def delete(
     # ------------
     qdel_path,
 ):
-    return call.qdel(
+    return calling.qdel(
         JB_job_number=job["JB_job_number"],
         qdel_path=qdel_path,
         logger=logger,
