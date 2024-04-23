@@ -324,7 +324,7 @@ class Pool:
 
             array_task_ids_to_be_resubmitted = []
             for job in jobs["error"]:
-                if array_task_shall_be_resubmitted(
+                if utils.array_task_shall_be_resubmitted(
                     array_task_id=job["array_task_id"],
                     num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
                     max_num_resubmissions=self.max_num_resubmissions,
@@ -359,19 +359,3 @@ class Pool:
             jf.write(json.dumps(num_resubmissions_by_array_task_id))
 
         return num_resubmissions_by_array_task_id, jobs
-
-
-def array_task_shall_be_resubmitted(
-    array_task_id,
-    num_resubmissions_by_array_task_id,
-    max_num_resubmissions,
-):
-    resubmit = True
-    if max_num_resubmissions is not None:
-        if array_task_id in num_resubmissions_by_array_task_id:
-            if (
-                num_resubmissions_by_array_task_id[array_task_id]
-                > max_num_resubmissions
-            ):
-                resubmit = False
-    return resubmit

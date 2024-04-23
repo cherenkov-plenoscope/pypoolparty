@@ -16,3 +16,19 @@ def split_job_id_and_array_task_id(job_id_str):
 
 def join_job_id_and_array_task_id(job_id, array_task_id):
     return str(int(job_id)) + "_" + str(int(array_task_id))
+
+
+def array_task_shall_be_resubmitted(
+    array_task_id,
+    num_resubmissions_by_array_task_id,
+    max_num_resubmissions,
+):
+    resubmit = True
+    if max_num_resubmissions is not None:
+        if array_task_id in num_resubmissions_by_array_task_id:
+            if (
+                num_resubmissions_by_array_task_id[array_task_id]
+                >= max_num_resubmissions
+            ):
+                resubmit = False
+    return resubmit

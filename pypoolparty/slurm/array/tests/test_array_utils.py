@@ -25,3 +25,29 @@ def test_replace_array_task_id_format_with_integer_format():
         fmt="/some/abs/path/prefix-%a.suffix"
     )
     assert fmt == "/some/abs/path/prefix-{:d}.suffix"
+
+
+def test_resubmission_limit():
+    assert pypoolparty.slurm.array.utils.array_task_shall_be_resubmitted(
+        array_task_id="23",
+        num_resubmissions_by_array_task_id={"1": 4, "23": 8, "100": 1},
+        max_num_resubmissions=9,
+    )
+
+    assert not pypoolparty.slurm.array.utils.array_task_shall_be_resubmitted(
+        array_task_id="23",
+        num_resubmissions_by_array_task_id={"1": 4, "23": 9, "100": 1},
+        max_num_resubmissions=9,
+    )
+
+    assert pypoolparty.slurm.array.utils.array_task_shall_be_resubmitted(
+        array_task_id="23",
+        num_resubmissions_by_array_task_id={"1": 4, "100": 1},
+        max_num_resubmissions=9,
+    )
+
+    assert pypoolparty.slurm.array.utils.array_task_shall_be_resubmitted(
+        array_task_id="23",
+        num_resubmissions_by_array_task_id={"1": 4, "23": 1000, "100": 1},
+        max_num_resubmissions=None,
+    )
