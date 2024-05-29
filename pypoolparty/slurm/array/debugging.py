@@ -22,7 +22,7 @@ class Debugging:
             path=opj(work_dir, "tasks.exceptions.zip"),
             pattern=".exception",
         )
-        with open(opj(work_dir, "scripy.py"), "rt") as f:
+        with open(opj(work_dir, "script.py"), "rt") as f:
             self.script = f.read()
 
         self.log = []
