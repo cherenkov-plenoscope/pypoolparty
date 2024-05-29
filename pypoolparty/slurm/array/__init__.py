@@ -238,6 +238,18 @@ class Pool:
                 logger.debug("All tasks returned.")
                 break
 
+            elif (
+                len(jobs["pending"]) == 0
+                and len(jobs["running"]) == 0
+                and len(jobs["error"] == 0)
+            ):
+                logger.critical(
+                    "Expected jobs to be either in "
+                    "'running', 'pending' or 'error'. "
+                    "Not all tasks have returned!"
+                )
+                break
+
             # Not all tasks have returned yet. Prepare to sleep until nex poll
             # ----------------------------------------------------------------
             last_poll = copy.deepcopy(poll)
@@ -257,6 +269,10 @@ class Pool:
 
         if self.keep_work_dir:
             logger.debug("User wants to keep work_dir.")
+            remove_this_work_dir = False
+
+        if len(reducer.tasks_returned) != len(tasks):
+            logger.warning("Not all tasks have returned, will keep work_dir.")
             remove_this_work_dir = False
 
         if len(reducer.tasks_exceptions) > 0:
