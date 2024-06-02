@@ -88,18 +88,16 @@ class Reducer:
         self.tasks_exceptions.append(task_id)
 
     def close(self):
-        self._reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return()
-
         self.zip_results.close()
-        os.rename(self.results_path + ".part", self.results_path)
         self.zip_stdout.close()
-        os.rename(self.stdout_path + ".part", self.stdout_path)
         self.zip_stderr.close()
-        os.rename(self.stderr_path + ".part", self.stderr_path)
         self.zip_exceptions.close()
+        os.rename(self.results_path + ".part", self.results_path)
+        os.rename(self.stdout_path + ".part", self.stdout_path)
+        os.rename(self.stderr_path + ".part", self.stderr_path)
         os.rename(self.exceptions_path + ".part", self.exceptions_path)
 
-    def _reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return(self):
+    def reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return(self):
         stdout_paths = glob.glob(os.path.join(self.work_dir, "*.stdout"))
         for path in stdout_paths:
             task_id = get_task_id_from_basename(os.path.basename(path))

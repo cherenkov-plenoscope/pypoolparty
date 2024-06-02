@@ -194,73 +194,77 @@ class Pool:
         ## ====================================================
         logger.debug("Preparing reduction of results...")
         reducer = reducing.Reducer(work_dir=work_dir)
-        logger.debug("Preparing reduction of results: done.")
+        try:
+            logger.debug("Preparing reduction of results: done.")
 
-        logger.debug("Waiting for tasks to return...")
+            logger.debug("Waiting for tasks to return...")
 
-        num_resubmissions_by_array_task_id = {}
-        last_poll = polling.init(len_tasks=len(tasks))
+            num_resubmissions_by_array_task_id = {}
+            last_poll = polling.init(len_tasks=len(tasks))
 
-        while True:
-            # Collecting/reducing task results written by the worker nodes
-            # ------------------------------------------------------------
-            reducer.reduce()
+            while True:
+                # Collecting/reducing task results written by the worker nodes
+                # ------------------------------------------------------------
+                reducer.reduce()
 
-            # Babysitting SLURM
-            # -----------------
-            (
-                num_resubmissions_by_array_task_id,
-                jobs,
-            ) = self.resubmit_jobs_which_indicate_errors_and_might_profit_from_a_resubmission(
-                num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
-                work_dir=work_dir,
-                jobname=jobname,
-                logger=logger,
-            )
-
-            # printing/logging current polling state
-            # --------------------------------------
-            poll = polling.init(
-                len_tasks=len(tasks),
-                reducer=reducer,
-                jobs=jobs,
-                num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
-            )
-            poll_msg = polling.to_str(poll=poll)
-            logger.debug(poll_msg)
-            if self.verbose:
-                if not polling.is_eual(last_poll, poll):
-                    self.print(poll_msg)
-
-            # Checking breakout criteria
-            # --------------------------
-            if len(reducer.tasks_returned) == len(tasks):
-                logger.debug("All tasks returned.")
-                break
-
-            elif (
-                len(jobs["pending"]) == 0
-                and len(jobs["running"]) == 0
-                and len(jobs["error"] == 0)
-            ):
-                logger.critical(
-                    "Expected jobs to be either in "
-                    "'running', 'pending' or 'error'. "
-                    "Not all tasks have returned!"
+                # Babysitting SLURM
+                # -----------------
+                (
+                    num_resubmissions_by_array_task_id,
+                    jobs,
+                ) = self.resubmit_jobs_which_indicate_errors_and_might_profit_from_a_resubmission(
+                    num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
+                    work_dir=work_dir,
+                    jobname=jobname,
+                    logger=logger,
                 )
-                break
 
-            # Not all tasks have returned yet. Prepare to sleep until nex poll
-            # ----------------------------------------------------------------
-            last_poll = copy.deepcopy(poll)
-            time.sleep(self.polling_interval)
+                # printing/logging current polling state
+                # --------------------------------------
+                poll = polling.init(
+                    len_tasks=len(tasks),
+                    reducer=reducer,
+                    jobs=jobs,
+                    num_resubmissions_by_array_task_id=num_resubmissions_by_array_task_id,
+                )
+                poll_msg = polling.to_str(poll=poll)
+                logger.debug(poll_msg)
+                if self.verbose:
+                    if not polling.is_eual(last_poll, poll):
+                        self.print(poll_msg)
 
-        logger.debug("Waiting for tasks to return: done.")
+                # Checking breakout criteria
+                # --------------------------
+                if len(reducer.tasks_returned) == len(tasks):
+                    logger.debug("All tasks returned.")
+                    break
 
-        ## FINISHING
-        ## =========
-        logger.debug("Closing files to reduce results...")
-        reducer.close()
+                elif (
+                    len(jobs["pending"]) == 0
+                    and len(jobs["running"]) == 0
+                    and len(jobs["error"] == 0)
+                ):
+                    logger.critical(
+                        "Expected jobs to be either in "
+                        "'running', 'pending' or 'error'. "
+                        "Not all tasks have returned!"
+                    )
+                    break
+
+                # Not all tasks have returned yet.
+                # Prepare to sleep until nex poll
+                # --------------------------------
+                last_poll = copy.deepcopy(poll)
+                time.sleep(self.polling_interval)
+
+            logger.debug("Waiting for tasks to return: done.")
+
+            ## FINISHING
+            ## =========
+            logger.debug("Closing files to reduce results...")
+            reducer.reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return()
+        finally:
+            reducer.close()
         logger.debug("Closing files to reduce results: done.")
 
         # Finding out if the work_dir should be removed
