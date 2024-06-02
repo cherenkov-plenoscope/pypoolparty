@@ -242,14 +242,13 @@ class Pool:
                 elif (
                     len(jobs["pending"]) == 0
                     and len(jobs["running"]) == 0
-                    and len(jobs["error"] == 0)
+                    and len(jobs["error"]) == 0
                 ):
-                    logger.critical(
+                    logger.warning(
                         "Expected jobs to be either in "
-                        "'running', 'pending' or 'error'. "
-                        "Not all tasks have returned!"
+                        "'running', 'pending' or 'error' "
+                        "while not all tasks have returned yet."
                     )
-                    break
 
                 # Not all tasks have returned yet.
                 # Prepare to sleep until nex poll
