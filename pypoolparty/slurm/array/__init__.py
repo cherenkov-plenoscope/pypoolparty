@@ -193,8 +193,7 @@ class Pool:
         ## WAITING FOR TASKS TO RETURN A.K.A. BABYSITTING SLURM
         ## ====================================================
         logger.debug("Preparing reduction of results...")
-        reducer = reducing.Reducer(work_dir=work_dir)
-        try:
+        with reducing.Reducer(work_dir=work_dir) as reducer:
             logger.debug("Preparing reduction of results: done.")
 
             logger.debug("Waiting for tasks to return...")
@@ -262,8 +261,7 @@ class Pool:
             ## =========
             logger.debug("Closing files to reduce results...")
             reducer.reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return()
-        finally:
-            reducer.close()
+
         logger.debug("Closing files to reduce results: done.")
 
         # Finding out if the work_dir should be removed

@@ -87,6 +87,16 @@ class Reducer:
         os.remove(path)
         self.tasks_exceptions.append(task_id)
 
+    def reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return(self):
+        stdout_paths = glob.glob(os.path.join(self.work_dir, "*.stdout"))
+        for path in stdout_paths:
+            task_id = get_task_id_from_basename(os.path.basename(path))
+            self._reduce_stdout_of_task(task_id=task_id)
+        stderr_paths = glob.glob(os.path.join(self.work_dir, "*.stderr"))
+        for path in stderr_paths:
+            task_id = get_task_id_from_basename(os.path.basename(path))
+            self._reduce_stderr_of_task(task_id=task_id)
+
     def close(self):
         self.zip_results.close()
         self.zip_stdout.close()
@@ -97,15 +107,16 @@ class Reducer:
         os.rename(self.stderr_path + ".part", self.stderr_path)
         os.rename(self.exceptions_path + ".part", self.exceptions_path)
 
-    def reduce_remaining_stdout_and_stderr_in_case_tasks_did_not_return(self):
-        stdout_paths = glob.glob(os.path.join(self.work_dir, "*.stdout"))
-        for path in stdout_paths:
-            task_id = get_task_id_from_basename(os.path.basename(path))
-            self._reduce_stdout_of_task(task_id=task_id)
-        stderr_paths = glob.glob(os.path.join(self.work_dir, "*.stderr"))
-        for path in stderr_paths:
-            task_id = get_task_id_from_basename(os.path.basename(path))
-            self._reduce_stderr_of_task(task_id=task_id)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def __repr__(self):
+        return "{:s}(work_dir={:s})".format(
+            self.__class__.__name__, repr(self.work_dir)
+        )
 
 
 def get_task_id_from_basename(basename):
