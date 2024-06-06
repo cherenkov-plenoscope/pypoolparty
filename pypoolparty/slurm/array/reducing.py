@@ -3,6 +3,7 @@ import zipfile
 import pickle
 import glob
 import re
+import json
 from ... import utils
 
 
@@ -16,9 +17,11 @@ class Reducer:
 
         self.stdout_path = os.path.join(work_dir, "tasks.stdout.zip")
         self.zip_stdout = zz.ZipFile(self.stdout_path + ".part", "w")
+        self.missing_stdout = set()
 
         self.stderr_path = os.path.join(work_dir, "tasks.stderr.zip")
         self.zip_stderr = zz.ZipFile(self.stderr_path + ".part", "w")
+        self.missing_stderr = set()
 
         self.exceptions_path = os.path.join(work_dir, "tasks.exceptions.zip")
         self.zip_exceptions = zz.ZipFile(self.exceptions_path + ".part", "w")
@@ -37,15 +40,34 @@ class Reducer:
         for path in result_paths:
             task_id = get_task_id_from_basename(os.path.basename(path))
             self._reduce_result_of_task(task_id=task_id)
-            self._reduce_stdout_of_task(task_id=task_id)
-            self._reduce_stderr_of_task(task_id=task_id)
+            self.missing_stdout.add(task_id)
+            self.missing_stderr.add(task_id)
 
         exception_paths = glob.glob(os.path.join(self.work_dir, "*.exception"))
         for path in exception_paths:
             task_id = get_task_id_from_basename(os.path.basename(path))
             self._reduce_exception_of_task(task_id=task_id)
-            self._reduce_stdout_of_task(task_id=task_id)
-            self._reduce_stderr_of_task(task_id=task_id)
+            self.missing_stdout.add(task_id)
+            self.missing_stderr.add(task_id)
+
+        self._try_reduce_missing_stdout()
+        self._try_reduce_missing_stderr()
+
+    def _try_reduce_missing_stdout(self):
+        for task_id in list(self.missing_stdout):
+            basename = "{:d}.stdout".format(task_id)
+            stdout_path = os.path.join(self.work_dir, basename)
+            if os.path.exists(stdout_path):
+                self._reduce_stdout_of_task(task_id=task_id)
+                self.missing_stdout.remove(task_id)
+
+    def _try_reduce_missing_stderr(self):
+        for task_id in list(self.missing_stderr):
+            basename = "{:d}.stderr".format(task_id)
+            stderr_path = os.path.join(self.work_dir, basename)
+            if os.path.exists(stderr_path):
+                self._reduce_stderr_of_task(task_id=task_id)
+                self.missing_stderr.remove(task_id)
 
     def _reduce_stderr_of_task(self, task_id):
         basename = "{:d}.stderr".format(task_id)
@@ -106,6 +128,16 @@ class Reducer:
         os.rename(self.stdout_path + ".part", self.stdout_path)
         os.rename(self.stderr_path + ".part", self.stderr_path)
         os.rename(self.exceptions_path + ".part", self.exceptions_path)
+        if self.missing_stdout:
+            self._write_json("missing_stdout.json", list(self.missing_stdout))
+        if self.missing_stderr:
+            self._write_json("missing_stderr.json", list(self.missing_stderr))
+
+    def _write_json(self, basename, obj):
+        path = os.path.join(self.work_dir, basename)
+        with open(path + ".part", "wt") as f:
+            f.write(json.dumps(obj))
+        os.rename(path + ".part", path)
 
     def __enter__(self):
         return self
