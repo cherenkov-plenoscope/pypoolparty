@@ -41,13 +41,17 @@ def run_full_analysis(work_dir, pool):
     The full analysis might call pool.map() several times.
     """
     jobs = make_jobs(
-        work_dir=work_dir, threshold_size=10, result_suffix="pass-10",
+        work_dir=work_dir,
+        threshold_size=10,
+        result_suffix="pass-10",
     )
     rc = pool.map(run_job, jobs)
 
     # second pass ...
     jobs = make_jobs(
-        work_dir=work_dir, threshold_size=20, result_suffix="pass-20",
+        work_dir=work_dir,
+        threshold_size=20,
+        result_suffix="pass-20",
     )
     rc = pool.map(run_job, jobs)
 
