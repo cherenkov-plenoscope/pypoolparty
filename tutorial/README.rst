@@ -128,6 +128,29 @@ Again, this will satisfy:
     assert results == results_using_pypoolparty
 
 
+*********************
+What do we got so far
+*********************
+
+This allows you to write your simulations/analysis independent of the compute hardware.
+You do not need to mix the physics code with the bookkeeping code for distributed or local
+parallel computing.
+
+.. code:: python
+
+    import very_important_simulations
+    import pypoolparty
+
+    pool = pypoolparty.slurm.array.Pool()
+
+    very_important_simulations.do_horrid_things_with_numbers(pool=pool)
+
+In the example above, ``pool`` could either be from ``pypoolparty`` or from ``multiprocessing``.
+
+
+
+
+
 
 
 
