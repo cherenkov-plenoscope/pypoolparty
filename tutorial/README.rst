@@ -65,4 +65,15 @@ The ``pool`` got a ``map`` function which takes two arguments.
 
     results_using_multiprocessing = pool.map(numpy.std, jobs)
 
+This simple call will yield the exact same results as the loop in a single thread.
+
+.. code:: python
+    
+    assert results == results_using_multiprocessing
+
+While the call looks simple, ``multiprocessing.Pool.map`` is actually rather advanced
+and smart. It has a non trivial scheduler which assigns the individual jobs to different threads
+in order to minimize the ideling of threads.
+
+
 
