@@ -102,4 +102,32 @@ thread is done with the former.
     thread 2: |..2..|...4...|...6...|...8...|
 
 
+***********
+Pypoolparty
+***********
+
+The multiprocessing pool is great but it can only use the threads of the local machine.
+To use the compute threads many machines in parallel, we have distributed computing with
+tools such as the ``sun-grid-engine`` or ``SLURM``.
+
+The ``pypoolparty`` allows us to make use of this with the same interface we are used from
+``multiprocessing.Pool``.
+
+.. code:: python
+
+    import pypoolparty
+
+    slurm_pool = pypoolparty.slurm.array.Pool(verbose=True)
+
+    results_using_pypoolparty = slurm_pool.map(numpy.std, jobs)
+
+Again, this will satisfy:
+
+.. code:: python
+    
+    assert results == results_using_pypoolparty
+
+
+
+
 
