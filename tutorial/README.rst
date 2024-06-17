@@ -6,9 +6,9 @@ The ``pypoolparty`` provides ``Pool.map`` which is a drop-in-replacement for
 python's ``multiprocessing.Pool.map``.
 
 
-*****************************
-Minimal example for ``map()``
-*****************************
+********************************
+An embarrassingly simple Problem
+********************************
 
 For example, we want to compute the standard deviation of multiple arrays.
 We can list the arrays into ``jobs``.
@@ -32,7 +32,7 @@ To compute the standard deviation, we use ``numpy.std()``
 
     np.float64(22.276669409945463)
 
-To compute the results, one for each job, we can loop over the jobs
+To compute the results, one result for each job, we can loop over the jobs
 
 .. code:: python
 
@@ -41,7 +41,7 @@ To compute the results, one for each job, we can loop over the jobs
         result = numpy.std(job)
         results.append(result)
 
-While correct, this is computation can be done quicker in an easy way becasue the
+While correct, this computation can be done quicker in an easy way becasue the
 individual processings of the jobs are independent of each other.
-This is a so called `embarresingly simple` problem for parallelisation.
+This is a so called `embarrassingly simple` problem in parallelisation.
 
