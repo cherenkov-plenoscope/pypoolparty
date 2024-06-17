@@ -2,13 +2,12 @@ import pypoolparty as ppp
 import tempfile
 import os
 import subprocess
-import numpy
 
 
 def test_make_worker_node_script():
     with tempfile.TemporaryDirectory(prefix="pypoolparty") as tmp:
-        bundle = [numpy.arange(100)]
-        func = numpy.sum
+        bundle = [ppp.utils.arange(start=0, stop=100)]
+        func = sum
         ppp.utils.write_pickle(
             path=os.path.join(tmp, "bundle.pkl"),
             content=bundle,
@@ -35,7 +34,9 @@ def test_make_worker_node_script():
         result = ppp.utils.read_pickle(
             path=os.path.join(tmp, "bundle.pkl.out")
         )
-        assert result == func(bundle[0])
+
+        result_conventional = [func(item) for item in bundle]
+        assert result == result_conventional
 
 
 def test_make_environ_str():

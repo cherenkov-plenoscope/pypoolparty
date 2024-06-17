@@ -8,6 +8,10 @@ import random
 import json_line_logger
 
 
+def arange(start, stop):
+    return [start + j for j in range(stop - start)]
+
+
 def make_path_executable(path):
     st = os.stat(path)
     os.chmod(path, st.st_mode | stat.S_IEXEC)

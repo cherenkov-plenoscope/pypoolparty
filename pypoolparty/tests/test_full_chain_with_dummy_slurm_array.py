@@ -1,5 +1,4 @@
 import pypoolparty
-import numpy as np
 import tempfile
 import pytest
 import os
@@ -35,7 +34,7 @@ def test_run_with_failing_job(debug_dir):
 
         tasks = []
         for i in range(NUM_JOBS):
-            task = np.arange(0, 100)
+            task = pypoolparty.utils.arange(start=0, stop=100)
             tasks.append(task)
 
         pool = pypoolparty.slurm.array.Pool(
@@ -49,7 +48,7 @@ def test_run_with_failing_job(debug_dir):
             verbose=True,
         )
 
-        results = pool.map(func=np.sum, iterable=tasks)
+        results = pool.map(func=sum, iterable=tasks)
 
         for i in range(NUM_JOBS):
-            assert results[i] == np.sum(tasks[i])
+            assert results[i] == sum(tasks[i])

@@ -1,5 +1,4 @@
 import pypoolparty
-import numpy
 import tempfile
 import os
 import subprocess
@@ -12,10 +11,10 @@ def debug_dir(pytestconfig):
 
 
 NUM_TASKS = 10
-GOOD_FUNC = numpy.sum
+GOOD_FUNC = sum
 GOOD_TASKS = []
 for i in range(NUM_TASKS):
-    work = numpy.arange(i, i + 100)
+    work = pypoolparty.utils.arange(start=i, stop=i + 100)
     GOOD_TASKS.append(work)
 BAD_FUNC = os.path.join
 
@@ -157,8 +156,8 @@ def test_bundling_many_tasks(debug_dir):
             num_chunks=7,
             verbose=True,
         )
-        results = pool.map(func=numpy.sum, iterable=tasks)
+        results = pool.map(func=sum, iterable=tasks)
 
         assert len(results) == num_many_tasks
         for i in range(len(results)):
-            assert results[i] == numpy.sum(tasks[i])
+            assert results[i] == sum(tasks[i])

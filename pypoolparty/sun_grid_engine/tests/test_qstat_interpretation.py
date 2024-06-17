@@ -1,6 +1,5 @@
 from pypoolparty import sun_grid_engine
 import pickle
-import numpy
 import os
 import subprocess
 
