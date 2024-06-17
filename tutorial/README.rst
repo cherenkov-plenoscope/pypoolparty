@@ -128,9 +128,9 @@ Again, this will satisfy:
     assert results == results_using_pypoolparty
 
 
-*********************
-What do we got so far
-*********************
+******************
+What we got so far
+******************
 
 This allows you to write your simulations/analysis independent of the compute hardware.
 You do not need to mix the physics code with the bookkeeping code for distributed or local
@@ -147,10 +147,8 @@ parallel computing.
 
 In the example above, ``pool`` could either be from ``pypoolparty`` or from ``multiprocessing``.
 
+When you got access to a distributed compute cluster, you can use it with ``pypoolparty``, when
+you are testing locally on your laptop you can use the builtin ``multiprocessing``.
 
-
-
-
-
-
-
+This allows you to keep the code for the simulations/analysis seperate from the code for
+the bookkeeping of parallel computes.
