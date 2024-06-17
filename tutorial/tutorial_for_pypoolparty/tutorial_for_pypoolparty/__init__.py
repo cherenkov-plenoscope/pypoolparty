@@ -2,9 +2,11 @@ from .version import __version__
 import os
 import glob
 import json
+import numpy as np
 
 
 def init(work_dir, seed=815, number_runs=96, number_events_per_run=100):
+    os.makedirs(work_dir, exist_ok=True)
     with open(os.path.join(work_dir, "config.json"), "wt") as fout:
         fout.write(
             json.dumps(
@@ -17,9 +19,8 @@ def init(work_dir, seed=815, number_runs=96, number_events_per_run=100):
         )
 
     prng = np.random.Generator(np.random.PCG64(seed))
-    os.makedirs(work_dir, exist_ok=True)
     for run_id in range(number_runs):
-        run_path = os.path.join(work_dir, "{:06d}.txt")
+        run_path = os.path.join(work_dir, "{:06d}.txt".format(run_id))
         with open(run_path, "wt") as fout:
             for event_id in range(number_events_per_run):
                 number_items_in_event = prng.integers(low=5, high=25)
@@ -27,10 +28,9 @@ def init(work_dir, seed=815, number_runs=96, number_events_per_run=100):
                     low=0, high=100, size=number_items_in_event
                 )
                 items_str = str.join(", ", [str(i) for i in items.tolist()])
-                fout.write("{06:d}:".format(event_id))
+                fout.write("{:06d}:".format(event_id))
                 fout.write(items_str)
                 fout.write("\n")
-
 
 
 def make_jobs(work_dir):
@@ -42,8 +42,7 @@ def make_jobs(work_dir):
 
     run_paths = glob.glob(os.path.join(work_dir, "*.txt"))
     for run_path in run_paths:
-
-        # some events are broken and need to be skipped
+        # we pretend that some events are broken and need to be skipped
         num_broken_events = prng.integers(low=0, high=5)
         broken_event_ids = prng.integers(
             low=0,
@@ -55,16 +54,18 @@ def make_jobs(work_dir):
             "work_dir": work_dir,
             "basename": os.path.basename(run_path),
             "broken_events_to_be_skipped": broken_event_ids,
+            "threshold_size": 10,
         }
-
+        jobs.append(job)
     return jobs
 
 
-def very_intense_and_complex_compute_of_event(event):
+def very_intense_and_complex_compute_of_event(event, threshold_size):
     result = {}
-    result["mean"] = float(np.mean(event["data"]))
-    result["std"] = float(np.std(event["data"]))
     result["size"] = int(len(event["data"]))
+    if result["size"] >= threshold_size:
+        result["mean"] = float(np.mean(event["data"]))
+        result["std"] = float(np.std(event["data"]))
     return result
 
 
@@ -80,12 +81,12 @@ class EventReader:
 
         event_id_str, items_str = str.split(line, ":")
 
-        item_strs = str.split(line, ",")
-        data = [int(i) for i in items_str]
-        return {
-            "event_id": int(event_id_str),
-            "data": data
-        }
+        item_strs = str.split(items_str, ",")
+        data = [int(i) for i in item_strs]
+        return {"event_id": int(event_id_str), "data": data}
+
+    def __iter__(self):
+        return self
 
     def __enter__(self):
         return self
@@ -106,14 +107,17 @@ def run_job(job):
 
     number_events_processed = 0
     with EventReader(path=ipath) as run:
-        with open(opath) as fout:
+        with open(opath, "wt") as fout:
             for event in run:
                 if event["event_id"] not in broken_events_to_be_skipped:
                     number_events_processed += 1
-                    result = very_intense_and_complex_compute_of_event(
-                        event=event
-                    )
+                    result = {}
                     result["event_id"] = event["event_id"]
+                    compute = very_intense_and_complex_compute_of_event(
+                        event=event,
+                        threshold_size=job["threshold_size"],
+                    )
+                    result.update(compute)
                     out_line = json.dumps(result, indent=None)
                     fout.write(out_line)
                     fout.write("\n")
