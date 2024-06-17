@@ -6,6 +6,9 @@ import numpy as np
 
 
 def init(work_dir, seed=815, number_runs=96, number_events_per_run=100):
+    """
+    make the work_dir and put some dummy runs with dummy events in it.
+    """
     os.makedirs(work_dir, exist_ok=True)
     with open(os.path.join(work_dir, "config.json"), "wt") as fout:
         fout.write(
@@ -33,7 +36,23 @@ def init(work_dir, seed=815, number_runs=96, number_events_per_run=100):
                 fout.write("\n")
 
 
-def make_jobs(work_dir):
+def run_full_analysis(work_dir, pool):
+    """
+    The full analysis might call pool.map() several times.
+    """
+    jobs = make_jobs(
+        work_dir=work_dir, threshold_size=10, result_suffix="pass-10",
+    )
+    rc = pool.map(run_job, jobs)
+
+    # second pass ...
+    jobs = make_jobs(
+        work_dir=work_dir, threshold_size=20, result_suffix="pass-20",
+    )
+    rc = pool.map(run_job, jobs)
+
+
+def make_jobs(work_dir, threshold_size=10, result_suffix="pass1"):
     with open(os.path.join(work_dir, "config.json"), "rt") as fin:
         config = json.loads(fin.read())
     prng = np.random.Generator(np.random.PCG64(config["seed"]))
@@ -54,7 +73,8 @@ def make_jobs(work_dir):
             "work_dir": work_dir,
             "basename": os.path.basename(run_path),
             "broken_events_to_be_skipped": broken_event_ids,
-            "threshold_size": 10,
+            "threshold_size": threshold_size,
+            "result_suffix": result_suffix,
         }
         jobs.append(job)
     return jobs
@@ -102,7 +122,7 @@ class EventReader:
 
 def run_job(job):
     ipath = os.path.join(job["work_dir"], job["basename"])
-    opath = ipath + ".results.jsonl"
+    opath = ipath + ".{:s}.jsonl".format(job["result_suffix"])
     broken_events_to_be_skipped = set(job["broken_events_to_be_skipped"])
 
     number_events_processed = 0

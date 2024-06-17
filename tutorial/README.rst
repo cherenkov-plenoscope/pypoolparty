@@ -49,8 +49,8 @@ This is a so called `embarrassingly simple` problem in parallelisation.
 Python's multiprocessing
 ************************
 
-One way of computing the results in parallel is to use pythons builtin multiprocessing
-library.
+One way of computing the results in parallel is to use pythons builtin
+multiprocessing library.
 
 .. code:: python
 
@@ -58,31 +58,33 @@ library.
 
     pool = multiprocessing.Pool(3)
 
-This creates a compute ``pool`` which will run in up to ``3`` threads in parallel.
-The ``pool`` got a ``map`` function which takes two arguments.
+This creates a compute ``pool`` which will run in up to ``3`` threads in
+parallel. The ``pool`` got a ``map`` function which takes two arguments.
 
 .. code:: python
 
     results_using_multiprocessing = pool.map(numpy.std, jobs)
 
-This simple call will yield the exact same results as the loop in a single thread.
+This simple call will yield the exact same results as the loop in a single
+thread.
 
 .. code:: python
-    
+
     assert results == results_using_multiprocessing
 
-While the call looks simple, ``multiprocessing.Pool.map`` is actually rather advanced
-and smart. It has smart scheduler which assigns the individual jobs to different threads
-in order to minimize the ideling of threads.
+While the call looks simple, ``multiprocessing.Pool.map`` is actually rather
+advanced and smart. It has smart scheduler which assigns the individual jobs to
+different threads in order to minimize the ideling of threads.
 
 ****************
 Smart scheduling
 ****************
 
-A smart assignment of jobs to threads is important when the jobs have different compute
-times or when threads have different compute speeds. A non trivial scheduler will split
-jobs into bunches of equal size and assign them to the threads right at the beginning of
-the ``map()`` call. But this can lead to poor performance.
+A smart assignment of jobs to threads is important when the jobs have different
+compute times or when threads have different compute speeds. A non trivial
+scheduler will split jobs into bunches of equal size and assign them to the
+threads right at the beginning of the ``map()`` call. But this can lead to poor
+performance.
 
 .. code::
 
@@ -91,8 +93,8 @@ the ``map()`` call. But this can lead to poor performance.
     thread 1: |.1.|..2..|.3.|...4...|
     thread 2: |......5......|...6...|..7..|...8...|
 
-A smart scheduler submits individual jobs to the threads and assigns the next one when the
-thread is done with the former.
+A smart scheduler submits individual jobs to the threads and assigns the next
+one when the thread is done with the former.
 
 .. code::
 
@@ -106,12 +108,12 @@ thread is done with the former.
 Pypoolparty
 ***********
 
-The multiprocessing pool is great but it can only use the threads of the local machine.
-To use the compute threads many machines in parallel, we have distributed computing with
-tools such as the ``sun-grid-engine`` or ``SLURM``.
+The multiprocessing pool is great but it can only use the threads of the local
+machine. To use the compute threads many machines in parallel, we have
+distributed computing with tools such as the ``sun-grid-engine`` or ``SLURM``.
 
-The ``pypoolparty`` allows us to make use of this with the same interface we are used from
-``multiprocessing.Pool``.
+The ``pypoolparty`` allows us to make use of this with the same interface we
+are used from ``multiprocessing.Pool``.
 
 .. code:: python
 
@@ -124,7 +126,7 @@ The ``pypoolparty`` allows us to make use of this with the same interface we are
 Again, this will satisfy:
 
 .. code:: python
-    
+
     assert results == results_using_pypoolparty
 
 
@@ -132,9 +134,9 @@ Again, this will satisfy:
 What we got so far
 ******************
 
-This allows you to write your simulations/analysis independent of the compute hardware.
-You do not need to mix the physics code with the bookkeeping code for distributed or local
-parallel computing.
+This allows you to write your simulations/analysis independent of the compute
+hardware. You do not need to mix the physics code with the bookkeeping code for
+distributed or local parallel computing.
 
 .. code:: python
 
@@ -145,10 +147,63 @@ parallel computing.
 
     very_important_simulations.do_horrid_things_with_numbers(pool=pool)
 
-In the example above, ``pool`` could either be from ``pypoolparty`` or from ``multiprocessing``.
 
-When you got access to a distributed compute cluster, you can use it with ``pypoolparty``, when
-you are testing locally on your laptop you can use the builtin ``multiprocessing``.
+In the example above, ``pool`` could either be from ``pypoolparty`` or from
+``multiprocessing``.
 
-This allows you to keep the code for the simulations/analysis seperate from the code for
-the bookkeeping of parallel computes.
+When you got access to a distributed compute cluster, you can use it with
+``pypoolparty``, when you are testing locally on your laptop you can use the
+builtin ``multiprocessing``.
+
+This allows you to keep the code for the simulations/analysis seperate from the
+code for the bookkeeping of parallel computes.
+
+
+**********************
+A more complex example
+**********************
+
+But what if your jobs are way to big to fit into the memory? What if the data
+behind your jobs are e.g. observation of a telescope?
+
+.. code:: python
+
+    import tutorial_for_pypoolparty
+
+    work_dir = "/path/to/my/pretend/telescope"
+
+    tutorial_for_pypoolparty.init(work_dir=work_dir)
+
+    jobs = tutorial_for_pypoolparty.make_jobs(work_dir=work_dir)
+
+    import multiprocessing
+
+    pool = multiprocessing.Pool(3)
+
+    return_codes = pool.map(tutorial_for_pypoolparty.run_job, jobs)
+
+
+In this example, we pretend the package ``tutorial_for_pypoolparty`` is the
+package for your telescope which has written lots of observation runs into its
+``work_dir``.
+
+The package provides two key functions: First, ``make_jobs()``, and second,
+``run_job()``.
+
+Instead laoding the telescope's observations into the jobs directly, here a job
+is only a reference to the telescope's observations.
+
+.. code:: python
+
+    jobs[1]
+
+    {
+        'work_dir': 'tut',
+        'basename': '000086.txt',
+        'broken_events_to_be_skipped': array([54, 85, 14]),
+        'threshold_size': 10
+    }
+
+
+And ``return_codes`` is not the full result but only a minimal return code or
+even ``None``.
