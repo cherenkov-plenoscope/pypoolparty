@@ -72,8 +72,34 @@ This simple call will yield the exact same results as the loop in a single threa
     assert results == results_using_multiprocessing
 
 While the call looks simple, ``multiprocessing.Pool.map`` is actually rather advanced
-and smart. It has a non trivial scheduler which assigns the individual jobs to different threads
+and smart. It has smart scheduler which assigns the individual jobs to different threads
 in order to minimize the ideling of threads.
+
+****************
+Smart scheduling
+****************
+
+A smart assignment of jobs to threads is important when the jobs have different compute
+times or when threads have different compute speeds. A non trivial scheduler will split
+jobs into bunches of equal size and assign them to the threads right at the beginning of
+the ``map()`` call. But this can lead to poor performance.
+
+.. code::
+
+    jobs: |.1.|..2..|.3.|...4...|......5......|...6...|..7..|...8...|
+
+    thread 1: |.1.|..2..|.3.|...4...|
+    thread 2: |......5......|...6...|..7..|...8...|
+
+A smart scheduler submits individual jobs to the threads and assigns the next one when the
+thread is done with the former.
+
+.. code::
+
+    jobs: |.1.|..2..|.3.|...4...|......5......|...6...|..7..|...8...|
+
+    thread 1: |.1.|.3.|......5......|..7..|
+    thread 2: |..2..|...4...|...6...|...8...|
 
 
 
