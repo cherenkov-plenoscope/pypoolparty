@@ -45,3 +45,24 @@ While correct, this computation can be done quicker in an easy way becasue the
 individual processings of the jobs are independent of each other.
 This is a so called `embarrassingly simple` problem in parallelisation.
 
+************************
+Python's multiprocessing
+************************
+
+One way of computing the results in parallel is to use pythons builtin multiprocessing
+library.
+
+.. code:: python
+
+    import multiprocessing
+
+    pool = multiprocessing.Pool(3)
+
+This creates a compute ``pool`` which will run in up to ``3`` threads in parallel.
+The ``pool`` got a ``map`` function which takes two arguments.
+
+.. code:: python
+
+    results_using_multiprocessing = pool.map(numpy.std, jobs)
+
+
