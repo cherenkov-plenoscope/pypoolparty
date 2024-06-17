@@ -3,7 +3,7 @@ import os
 import glob
 import pickle
 import difflib
-import json_utils
+import json_lines
 import io
 
 from . import reducing
@@ -30,7 +30,7 @@ class Debugging:
             self.script = f.read()
 
         self.log = []
-        with json_utils.lines.open(opj(work_dir, "log.jsonl"), "r") as jlin:
+        with json_lines.open(opj(work_dir, "log.jsonl")) as jlin:
             for log_item in jlin:
                 self.log.append(log_item)
 

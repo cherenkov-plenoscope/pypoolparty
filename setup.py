@@ -37,8 +37,9 @@ setuptools.setup(
     },
     install_requires=[
         "qstat>=0.0.5",
-        "json_line_logger",
-        "rename_after_writing",
+        "json_lines>=0.5.0",
+        "json_line_logger>=0.0.9",
+        "rename_after_writing>=0.0.5",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
