@@ -5,25 +5,25 @@ import os
 with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 
-with open(os.path.join("tutorial-for-pypoolparty", "version.py")) as f:
+with open(os.path.join("tutorial_for_pypoolparty", "version.py")) as f:
     txt = f.read()
     last_line = txt.splitlines()[-1]
     version_string = last_line.split()[-1]
     version = version_string.strip("\"'")
 
 setuptools.setup(
-    name="tutorial-for-pypoolparty",
+    name="tutorial_for_pypoolparty",
     version=version,
-    description=("This is tutorial-for-pypoolparty."),
+    description=("This is tutorial_for_pypoolparty."),
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://github.com/cherenkov-plenoscope/tutorial-for-pypoolparty",
+    url="https://github.com/cherenkov-plenoscope/tutorial_for_pypoolparty",
     author="Sebastian A. Mueller",
     author_email="Sebastian A. Mueller@mail",
     packages=[
-        "tutorial-for-pypoolparty",
+        "tutorial_for_pypoolparty",
     ],
-    package_data={"tutorial-for-pypoolparty": []},
+    package_data={"tutorial_for_pypoolparty": []},
     install_requires=[],
     classifiers=[
         "Programming Language :: Python :: 3",
