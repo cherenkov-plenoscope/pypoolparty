@@ -54,7 +54,7 @@ class Debugging:
             self.completion[task_id] = "unknown"
 
         for task_id in self.results:
-            if task_id in self.stderr and task_id in self.stderr:
+            if task_id in self.stdout and task_id in self.stderr:
                 self.completion[task_id] = "complete"
             else:
                 self.completion[task_id] = "incomplete"
@@ -105,6 +105,11 @@ class Debugging:
             if self.completion[task_id] != "complete":
                 out.add(task_id)
         return out
+
+    def __repr__(self):
+        return "{:s}(work_dir={:s})".format(
+            self.__class__.__name__, repr(self.work_dir)
+        )
 
 
 def path_fallback(path, extention):
