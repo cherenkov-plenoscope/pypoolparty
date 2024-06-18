@@ -1,7 +1,13 @@
 import io
 
 
-def make(func_module, func_name, work_dir, shebang=None):
+def make(
+    func_module,
+    func_name,
+    work_dir,
+    shebang=None,
+    unpack_task_with_asterisk=False,
+):
     """
     Parameters
     ----------
@@ -12,10 +18,13 @@ def make(func_module, func_name, work_dir, shebang=None):
     shebang : str (optional)
         The first line string pointing to the executable for this script.
         Example: '#!/path/to/executable'
+    unpack_task_with_asterisk : bool
+        If True, the task will be unpacked into func using an asterisk '*'.
     """
     scr = io.StringIO()
     if shebang:
         scr.write(shebang + "\n")
+    asterisk_or_not = "*" if unpack_task_with_asterisk else ""
     scr.write("# I was generated automatically by pypoolparty.slurm.array.\n")
     scr.write("# I will be executed on the worker nodes.\n")
     scr.write("import os\n")
@@ -33,7 +42,9 @@ def make(func_module, func_name, work_dir, shebang=None):
     scr.write("        task_id=task_id,\n")
     scr.write("    )\n")
     scr.write(
-        "    task_result = {:s}.{:s}(task)\n".format(func_module, func_name)
+        "    task_result = {:s}.{:s}({:s}task)\n".format(
+            func_module, func_name, asterisk_or_not
+        )
     )
     scr.write("    ppp.utils.write_pickle(\n")
     scr.write("        path=os.path.join(\n")

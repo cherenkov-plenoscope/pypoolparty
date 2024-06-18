@@ -95,7 +95,9 @@ class Pool:
     def print(self, msg):
         print("[pypoolparty]", general_utils.time_now_iso8601(), msg)
 
-    def map(self, func, iterable):
+    def map(
+        self, func, iterable, chunksize=None, _unpack_task_with_asterisk=False
+    ):
         """
         Apply `func` to each element in `iterable`, collecting the results
         in a list that is returned.
@@ -108,6 +110,8 @@ class Pool:
             func.__name__
         iterable : list
             List of tasks. Each task must be a valid input to 'func'.
+        chunksize : int
+            This is ignored for the SLURM array.
 
         Returns
         -------
@@ -137,7 +141,7 @@ class Pool:
                 opj(".", ".pypoolparty_slurm_array_" + jobname)
             )
         else:
-            work_dir = os.path.abspath(self.work_dir)
+            work_dir = os.path.join(os.path.abspath(self.work_dir), jobname)
         os.makedirs(work_dir)
 
         # logger
@@ -159,6 +163,7 @@ class Pool:
             func_name=func.__name__,
             shebang="#!{:s}".format(self.python_path),
             work_dir=work_dir,
+            unpack_task_with_asterisk=_unpack_task_with_asterisk,
         )
         general_utils.write_text(
             path=opj(work_dir, "script.py"), content=script_content
@@ -304,6 +309,19 @@ class Pool:
             shutil.rmtree(work_dir)
 
         return task_results
+
+    def starmap(self, func, iterable, chunksize=None):
+        """
+        Like map() except that the elements of the iterable are expected
+        to be iterables that are unpacked as arguments.
+        """
+        tasks = [task for task in iterable]
+        return self.map(
+            func=func,
+            iterable=tasks,
+            chunksize=chunksize,
+            _unpack_task_with_asterisk=True,
+        )
 
     def resubmit_jobs_which_indicate_errors_and_might_profit_from_a_resubmission(
         self,

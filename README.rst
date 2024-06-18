@@ -43,6 +43,15 @@ Basic Usage
     results = pool.map(sum, [[1, 2], [2, 3], [4, 5], ])
 
 
+The ``pool`` implements two functions ``map`` and ``starmap``.
+
+.. code:: python
+
+    import operator
+
+    results = pool.starmap(operator.eq, zip([1, 2, 3], [1, "nope", 3]))
+
+
 For more details, see the ``Pool()'s`` docs, e.g. ``pypoolparty.slurm.array.Pool?``.
 Options to the ``Pool()s`` are defined in therir constructors e.g.
 

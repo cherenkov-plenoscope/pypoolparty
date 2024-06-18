@@ -1,7 +1,13 @@
 import io
 
 
-def make(func_module, func_name, environ, shebang=None):
+def make(
+    func_module,
+    func_name,
+    environ,
+    shebang=None,
+    unpack_task_with_asterisk=False,
+):
     """
     Returns a string that is a python-script.
     This python-script will be executed on the worker-node.
@@ -23,10 +29,13 @@ def make(func_module, func_name, environ, shebang=None):
     shebang : str (optional)
         The first line string pointing to the executable for this script.
         Example: '#!/path/to/executable'
+    unpack_task_with_asterisk : bool
+        If True, the task will be unpacked into func using an asterisk '*'.
     """
     scr = io.StringIO()
     if shebang:
         scr.write(shebang + "\n")
+    asterisk_or_not = "*" if unpack_task_with_asterisk else ""
     scr.write("# I was generated automatically by pypoolparty.\n")
     scr.write("# I will be executed on the worker-nodes.\n")
     scr.write("import os\n")
@@ -43,9 +52,10 @@ def make(func_module, func_name, environ, shebang=None):
     scr.write("for j, task in enumerate(chunk):\n")
     scr.write("    try:\n")
     scr.write(
-        "        task_result = {func_module:s}.{func_name:s}(task)\n".format(
+        "        task_result = {func_module:s}.{func_name:s}({asterisk_or_not:s}task)\n".format(
             func_module=func_module,
             func_name=func_name,
+            asterisk_or_not=asterisk_or_not,
         )
     )
     scr.write("    except Exception as bad:\n")

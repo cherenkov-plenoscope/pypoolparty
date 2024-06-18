@@ -85,7 +85,9 @@ class Pool:
     def print(self, msg):
         print("[pypoolparty]", utils.time_now_iso8601(), msg)
 
-    def map(self, func, iterable):
+    def map(
+        self, func, iterable, chunksize=None, _unpack_task_with_asterisk=False
+    ):
         """
         Apply `func` to each element in `iterable`, collecting the results
         in a list that is returned.
@@ -98,6 +100,8 @@ class Pool:
             func.__name__
         iterable : list
             List of tasks. Each task must be a valid input to 'func'.
+        chunksize : int
+            Number of tasks to run sequentially in a single job.
 
         Returns
         -------
@@ -112,12 +116,19 @@ class Pool:
         tasks = iterable
         session_id = utils.session_id_from_time_now()
 
+        if chunksize is not None:
+            chunksize = int(chunksize)
+            assert chunksize >= 1
+            num_chunks = utils.int_ceil_division(a=len(tasks), b=chunksize)
+        else:
+            num_chunks = self.num_chunks
+
         if self.work_dir is None:
             swd = os.path.abspath(
                 os.path.join(".", ".pypoolparty_" + session_id)
             )
         else:
-            swd = os.path.abspath(self.work_dir)
+            swd = os.path.join(os.path.abspath(self.work_dir), session_id)
 
         os.makedirs(swd)
         if self.verbose:
@@ -140,6 +151,7 @@ class Pool:
             func_name=func.__name__,
             environ=dict(os.environ),
             shebang=shebang,
+            unpack_task_with_asterisk=_unpack_task_with_asterisk,
         )
         utils.write_text(path=script_path, content=script_content)
         utils.make_path_executable(path=script_path)
@@ -148,7 +160,7 @@ class Pool:
 
         chunks = chunking.assign_tasks_to_chunks(
             num_tasks=len(tasks),
-            num_chunks=self.num_chunks,
+            num_chunks=num_chunks,
         )
 
         sl.debug("Mapping chunks of tasks into work_dir")
@@ -283,6 +295,19 @@ class Pool:
             shutil.rmtree(swd)
 
         return task_results
+
+    def starmap(self, func, iterable, chunksize=None):
+        """
+        Like map() except that the elements of the iterable are expected
+        to be iterables that are unpacked as arguments.
+        """
+        tasks = [task for task in iterable]
+        return self.map(
+            func=func,
+            iterable=tasks,
+            chunksize=chunksize,
+            _unpack_task_with_asterisk=True,
+        )
 
 
 def _doc_retrun_statement():

@@ -2,6 +2,7 @@ import pypoolparty
 import tempfile
 import pytest
 import os
+import operator
 
 
 @pytest.fixture()
@@ -52,3 +53,13 @@ def test_run_with_failing_job(debug_dir):
 
         for i in range(NUM_JOBS):
             assert results[i] == sum(tasks[i])
+
+        # starmap
+        # -------
+        results = pool.starmap(
+            func=operator.eq, iterable=zip([1, 1, 1, 1], [1, 0, 1, 1])
+        )
+        assert results[0]
+        assert not results[1]
+        assert results[2]
+        assert results[3]

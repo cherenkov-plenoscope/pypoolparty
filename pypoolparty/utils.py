@@ -129,3 +129,9 @@ def dict_increment(d, key):
         d[key] += 1
     else:
         d[key] = 1
+
+
+def int_ceil_division(a, b):
+    d = a // b
+    d += 1 if (a % b > 0) else 0
+    return d

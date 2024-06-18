@@ -19,3 +19,10 @@ def test_read_write_pickle():
         ppp.utils.write_pickle(path=tmp_path, content=content)
         content_back = ppp.utils.read_pickle(path=tmp_path)
         assert content == content_back
+
+
+def test_int_ceil_division():
+    assert 2 == ppp.utils.int_ceil_division(10, 5)
+    assert 3 == ppp.utils.int_ceil_division(10, 4)
+    assert 4 == ppp.utils.int_ceil_division(10, 3)
+    assert 5 == ppp.utils.int_ceil_division(10, 2)
