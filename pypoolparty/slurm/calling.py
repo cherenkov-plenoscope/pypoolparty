@@ -23,8 +23,8 @@ def sbatch(
     clusters=None,
     sbatch_path="sbatch",
     timeout=None,
-    timecooldown=1.0,
-    max_num_retry=25,
+    timecooldown=120.0,
+    max_num_retry=30,
 ):
     if logger is None:
         logger = json_line_logger.LoggerStdout()
@@ -143,8 +143,8 @@ def scancel(
     jobid=None,
     scancel_path="scancel",
     timeout=None,
-    timecooldown=1.0,
-    max_num_retry=25,
+    timecooldown=120.0,
+    max_num_retry=30,
     logger=None,
 ):
     if logger is None:
@@ -179,8 +179,8 @@ def squeue(
     jobname=None,
     array=False,
     timeout=None,
-    timecooldown=1.0,
-    max_num_retry=25,
+    timecooldown=120.0,
+    max_num_retry=30,
     logger=None,
     debug_dump_path=None,
 ):
@@ -194,7 +194,8 @@ def squeue(
     timeout : float or None
         Time to wait for squeue to return.
     timecooldown : float
-        Time to wait before calling squeue again in case of a problem.
+        Time in seconds to wait before calling squeue again in case of a
+        problem.
 
     Returns
     -------
