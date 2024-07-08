@@ -16,7 +16,7 @@ def draw_muon_parameters(prng, num=32):
     return {"x": x, "y": y, "r": r}
 
 
-def make_muon_image(x, y, r, num=32):
+def init_image_with_ring(x, y, r, num=32):
     """
     Returns a binary image containing a ring at x, y with radius r.
     """
@@ -65,17 +65,6 @@ def image_loads(txt):
     return img
 
 
-def test_imgage_io():
-    num = 32
-    prng = np.random.Generator(np.random.PCG64(5))
-    for i in range(100):
-        muo = draw_muon_parameters(prng=prng, num=num)
-        img = make_muon_image(**muo, num=num)
-        txt = image_dumps(img=img)
-        imb = image_loads(txt=txt)
-        np.testing.assert_almost_equal(img, imb)
-
-
 def hough_binning(num):
     """
     Returns estimates for the bins in a hough transformation when looking
@@ -98,7 +87,7 @@ def hough_transform(img, binning=None):
     for ix, x in enumerate(xs):
         for iy, y in enumerate(ys):
             for ir, r in enumerate(rs):
-                mask = make_muon_image(x=x, y=y, r=r, num=img.shape[0])
+                mask = init_image_with_ring(x=x, y=y, r=r, num=img.shape[0])
                 response[ix, iy, ir] = np.sum(mask * img)
     return response
 
@@ -146,11 +135,25 @@ def init(work_dir, num_events=96, seed=1, num_pixel=32):
         opath = os.path.join(work_dir, f"{i:03d}")
         with open(opath + ".truth.json", "wt") as f:
             f.write(json.dumps(truth))
-        img = make_muon_image(
+        img = init_image_with_ring(
             x=truth["x"], y=truth["y"], r=truth["r"], num=num
         )
         with open(opath + ".image.txt", "wt") as f:
             f.write(image_dumps(img=img))
+
+
+def reconstruct_event(work_dir, event_number):
+    ipath = os.path.join(work_dir, f"{event_number:03d}")
+
+    with open(ipath + ".image.txt", "rt") as f:
+        img = image_loads(f.read())
+
+    recon = reconstruct_muon_ring_from_image(img=img)
+
+    with open(ipath + ".recon.json", "wt") as f:
+        f.write(json.dumps(recon))
+
+    return recon
 
 
 def make_jobs(work_dir):
@@ -172,17 +175,7 @@ def run_job(job):
     Opens a muon image, estimates the ring's parameters and writes them next
     to the image.
     """
-    ipath = os.path.join(job["work_dir"], f"{job['event_number']:03d}")
-
-    with open(ipath + ".image.txt", "rt") as f:
-        img = image_loads(f.read())
-
-    recon = reconstruct_muon_ring_from_image(img=img)
-
-    with open(ipath + ".recon.json", "wt") as f:
-        f.write(json.dumps(recon))
-
-    return recon
+    return reconstruct_event(**job)
 
 
 def read_all(work_dir):
