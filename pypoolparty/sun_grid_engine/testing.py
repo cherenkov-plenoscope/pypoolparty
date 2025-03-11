@@ -1,6 +1,7 @@
 """
 A dummy queue for testing qsub, qstat, and qdel.
 """
+
 import os
 from .. import utils
 

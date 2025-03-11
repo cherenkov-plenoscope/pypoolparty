@@ -59,26 +59,26 @@ if args.array is not None:
 
     for array_task_id in array_task_ids:
         job = job_init_default(python_path=python_path)
-        job[
-            "JOBID"
-        ] = pypoolparty.slurm.array.utils.join_job_id_and_array_task_id(
-            job_id=jobid, array_task_id=array_task_id
+        job["JOBID"] = (
+            pypoolparty.slurm.array.utils.join_job_id_and_array_task_id(
+                job_id=jobid, array_task_id=array_task_id
+            )
         )
         job["NAME"] = args.job_name
         job["ARRAY_TASK_ID"] = str(array_task_id)
-        job[
-            "_opath"
-        ] = pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
-            fmt=args.output
-        ).format(
-            array_task_id
+        job["_opath"] = (
+            pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
+                fmt=args.output
+            ).format(
+                array_task_id
+            )
         )
-        job[
-            "_epath"
-        ] = pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
-            fmt=args.error
-        ).format(
-            array_task_id
+        job["_epath"] = (
+            pypoolparty.slurm.array.utils.replace_array_task_id_format_with_integer_format(
+                fmt=args.error
+            ).format(
+                array_task_id
+            )
         )
         job["_additional_environment"] = {
             "SLURM_ARRAY_TASK_ID": str(array_task_id)
