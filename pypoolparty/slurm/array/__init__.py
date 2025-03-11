@@ -368,6 +368,13 @@ class Pool:
                     array_task_ids_to_be_resubmitted.append(
                         job["array_task_id"]
                     )
+                else:
+                    msg = (
+                        "Reached 'max_num_resubmissions' "
+                        f"for array_task_id={array_task_id:d}."
+                    )
+                    logger.debug(msg)
+                    raise RuntimeError(msg)
 
             logger.debug("Calling sbatch --array...")
             calling.sbatch(
