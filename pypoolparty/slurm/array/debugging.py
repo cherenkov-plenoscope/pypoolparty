@@ -116,7 +116,7 @@ class Debugging:
         ]
         for key in keys:
             sset = getattr(self, key)()
-            msg += f"- {key:s} ({len(sset):d}) :"
+            msg += f"- {key:s} ({len(sset):d}): "
             msg += _make_overview_str_of_set(s=sset)
             msg += "\n"
 
@@ -251,4 +251,4 @@ def _make_overview_str_of_set(s, size=50):
     if len(ppp) < size:
         return ppp
     else:
-        return "{...}"
+        return "{" + " ... " + "}"
