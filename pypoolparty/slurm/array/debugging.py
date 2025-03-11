@@ -115,8 +115,9 @@ class Debugging:
             "is_not_complete",
         ]
         for key in keys:
-            msg += f"- {key:s} ({len(getattr(self, key)):d}) :"
-            msg += _make_overview_str_of_set(s=getattr(self, key))
+            sset = getattr(self, key)()
+            msg += f"- {key:s} ({len(sset):d}) :"
+            msg += _make_overview_str_of_set(s=sset)
             msg += "\n"
 
         keys = ["exceptions", "stdout", "stderr"]
