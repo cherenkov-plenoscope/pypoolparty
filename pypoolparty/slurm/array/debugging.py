@@ -106,10 +106,38 @@ class Debugging:
                 out.add(task_id)
         return out
 
+    def __repr_details__(self):
+        msg = ""
+        keys = [
+            "has_exceptions",
+            "has_non_zero_stdout",
+            "has_non_zero_stderr",
+            "is_not_complete",
+        ]
+        for key in keys:
+            msg += f"- {key:s} ({len(getattr(self, key)):d}) :"
+            msg += _make_overview_str_of_set(s=getattr(self, key))
+            msg += "\n"
+
+        keys = ["exceptions", "stdout", "stderr"]
+        for key in keys:
+            logtexts = getattr(self, key)
+            if len(logtexts) > 0:
+                msg += "\n"
+                msg += f"__histogram_{key:s}__\n"
+                hsit = histogram_loglines(logtexts=logtexts)
+                msg += histogram_loglines_print(hsit=hsit)
+        return msg
+
     def __repr__(self):
-        return "{:s}(work_dir={:s})".format(
-            self.__class__.__name__, repr(self.work_dir)
-        )
+        msg = f"{self.__class__.__name__:s}(work_dir={repr(self.work_dir):s})"
+        try:
+            details = self.__repr_details__()
+            msg += "\n"
+            msg += details
+        except Exception as err:
+            print(err)
+        return msg
 
 
 def path_fallback(path, extention):
@@ -215,3 +243,11 @@ def str_similarity(a, b):
 
 def argsort(seq):
     return sorted(range(len(seq)), key=seq.__getitem__)
+
+
+def _make_overview_str_of_set(s, size=50):
+    ppp = str(s)
+    if len(ppp) < size:
+        return ppp
+    else:
+        return "{...}"
