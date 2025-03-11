@@ -126,8 +126,8 @@ class Debugging:
             if len(logtexts) > 0:
                 msg += "\n"
                 msg += f"__histogram_{key:s}__\n"
-                hsit = histogram_loglines(logtexts=logtexts)
-                msg += histogram_loglines_print(hsit=hsit)
+                hist = histogram_loglines(logtexts=logtexts)
+                msg += histogram_loglines_print(hist=hist)
         return msg
 
     def __repr__(self):
