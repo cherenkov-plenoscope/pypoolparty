@@ -371,7 +371,7 @@ class Pool:
                 else:
                     msg = (
                         "Reached 'max_num_resubmissions' "
-                        f"for array_task_id={array_task_id:d}."
+                        f"for array_task_id={job['array_task_id']:d}."
                     )
                     logger.debug(msg)
                     raise RuntimeError(msg)
