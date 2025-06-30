@@ -6,6 +6,7 @@ import rename_after_writing
 import pickle
 import random
 import json_line_logger
+import uuid
 
 
 def arange(start, stop):
@@ -23,7 +24,9 @@ def default_python_path():
 
 def session_id_from_time_now():
     # This must be a valid filename. No ':' for time.
-    return time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
+    uuid_str = uuid.uuid4().__str__()[0:6]
+    time_str = time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
+    return time_str + "_" + uuid_str
 
 
 def time_now_iso8601():
